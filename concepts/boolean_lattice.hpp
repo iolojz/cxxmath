@@ -5,8 +5,8 @@
 #ifndef CXXMATH_CONCEPTS_BOOLEAN_ALGEBRA_HPP
 #define CXXMATH_CONCEPTS_BOOLEAN_ALGEBRA_HPP
 
-#include "cxxmath/core/concepts.hpp"
-#include "../models/function_object.hpp"
+#include "core/concepts.hpp"
+#include "models/function_object.hpp"
 
 namespace cxxmath
 {
@@ -41,9 +41,9 @@ CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( or_, default_boolean_lattice_t
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( not_, default_boolean_lattice_t
 )
 
-CXXMATH_DEFINE_DEFAULT_DISPATCHED_OPERATOR( &&, and_ )
-CXXMATH_DEFINE_DEFAULT_DISPATCHED_OPERATOR( ||, or_ )
-CXXMATH_DEFINE_DEFAULT_DISPATCHED_OPERATOR( !, not_ )
+CXXMATH_DEFINE_DEFAULT_DISPATCHED_BINARY_OPERATOR( &&, and_ )
+CXXMATH_DEFINE_DEFAULT_DISPATCHED_BINARY_OPERATOR( ||, or_ )
+CXXMATH_DEFINE_DEFAULT_DISPATCHED_UNARY_OPERATOR( !, not_ )
 }
 
 #endif //CXXMATH_CONCEPTS_BOOLEAN_ALGEBRA_HPP

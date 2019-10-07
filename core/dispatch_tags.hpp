@@ -86,16 +86,6 @@ struct supports_tag_helper
 	}
 };
 
-template<class ...DispatchTag>
-struct supports_tag_helper
-{
-	template<class ...Tag>
-	static constexpr bool supports_tags( void )
-	{
-		return (std::is_same_v<DispatchTag, Tag> && ... && true);
-	}
-};
-
 template<class ...Implementations>
 struct forward_supported_tags
 {
@@ -103,12 +93,6 @@ struct forward_supported_tags
 	static constexpr bool supports_tag( void )
 	{
 		return (Implementations::template supports_tag<Tag>() && ... && true);
-	}
-	
-	template<class ...Tags>
-	static constexpr bool supports_tags( void )
-	{
-		return (Implementations::template supports_tags<Tags...>() && ... && true);
 	}
 };
 }

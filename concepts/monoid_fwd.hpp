@@ -5,8 +5,8 @@
 #ifndef CXXMATH_CONCEPTS_MONOID_FWD_HPP
 #define CXXMATH_CONCEPTS_MONOID_FWD_HPP
 
-#include "../models/function_object_fwd.hpp"
-#include "../core/operator_helpers_fwd.hpp"
+#include "models/function_object_fwd.hpp"
+#include "core/operator_helpers_fwd.hpp"
 
 namespace cxxmath
 {

@@ -36,7 +36,7 @@ public:
 namespace detail
 {
 template<class ScalarMultiplyAssign>
-struct scalar_multiply : forward_supports_tag<ScalarMultiplyAssign>
+struct scalar_multiply : forward_supported_tags<ScalarMultiplyAssign>
 {
 	template<class Scalar, class Object>
 	static constexpr decltype( auto ) apply( Scalar &&s, Object &&o )

@@ -9,9 +9,9 @@
 #include "std_vector.hpp"
 #include "product_monoid.hpp"
 
-#include "../core/erase_if.hpp"
-#include "../core/unpack_template.hpp"
-#include "../core/move_aware_range_helpers.hpp"
+#include "core/erase_if.hpp"
+#include "core/unpack_template.hpp"
+#include "core/move_aware_range_helpers.hpp"
 
 #include <boost/range/combine.hpp>
 #include <boost/container/flat_map.hpp>

@@ -9,11 +9,11 @@
 
 namespace cxxmath
 {
-template<class Concept, class ...Tags>
-struct modelled_concept : std::false_type
+template<class DispatchTag, class Concept>
+struct models_concept : std::false_type
 {
 };
-template<class Concept, class ...Tags> static constexpr bool modelled_concept_v = modelled_concept<Concept, Tags...>::value;
+template<class Concept, class ...Tags> static constexpr bool models_concept_v = models_concept<Concept, Tags...>::value;
 
 namespace impl
 {

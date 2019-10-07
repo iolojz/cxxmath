@@ -5,8 +5,8 @@
 #ifndef CXXMATH_CONCEPTS_TOTAL_ORDER_HPP
 #define CXXMATH_CONCEPTS_TOTAL_ORDER_HPP
 
-#include "../core/concepts.hpp"
-#include "../models/function_object.hpp"
+#include "core/concepts.hpp"
+#include "models/function_object.hpp"
 
 namespace cxxmath
 {
@@ -15,7 +15,7 @@ namespace concepts
 namespace detail
 {
 template<class Less>
-struct less_equal_total_order : forward_supports_tag<Less>
+struct less_equal_total_order : forward_supported_tags<Less>
 {
 	template<class Arg1, class Arg2>
 	static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
@@ -25,7 +25,7 @@ struct less_equal_total_order : forward_supports_tag<Less>
 };
 
 template<class Less>
-struct equal_total_order : forward_supports_tag<Less>
+struct equal_total_order : forward_supported_tags<Less>
 {
 	template<class Arg1, class Arg2>
 	static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
@@ -35,7 +35,7 @@ struct equal_total_order : forward_supports_tag<Less>
 };
 
 template<class Less>
-struct greater_equal_total_order : forward_supports_tag<Less>
+struct greater_equal_total_order : forward_supported_tags<Less>
 {
 	template<class Arg1, class Arg2>
 	static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
@@ -45,7 +45,7 @@ struct greater_equal_total_order : forward_supports_tag<Less>
 };
 
 template<class Less>
-struct greater_total_order : forward_supports_tag<Less>
+struct greater_total_order : forward_supported_tags<Less>
 {
 	template<class Arg1, class Arg2>
 	static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )

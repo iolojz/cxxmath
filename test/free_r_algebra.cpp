@@ -6,18 +6,23 @@
 
 #include <boost/test/included/unit_test.hpp>
 
-#include "cxxmath/cxxmath.hpp"
+#include "cxxmath.hpp"
 
 namespace
 {
 template<class Monomial>
 void print_monomial( std::ostream &os, const Monomial &m );
+
+template<class Tag> struct is_free_algebra_tag : std::false_type {};
+
+template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
+struct is_free_algebra_tag<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>>
+: std::true_type {};
 }
 
 namespace cxxmath
 {
-template<class Polynomial, class = std::enable_if_t<is_polynomial_tag < tag_of_t < Polynomial>> ::value>>
-
+template<class FRA, class = std::enable_if_t<is_free_algebra_tag < tag_of_t < Polynomial>> ::value>>
 std::ostream &operator<<( std::ostream &os, const Polynomial &p )
 {
 	const auto &monomials = p.monomials();
@@ -45,10 +50,10 @@ void print_monomial( std::ostream &os, const Monomial &m )
 }
 }
 
-BOOST_AUTO_TEST_CASE( test_polynomial )
+BOOST_AUTO_TEST_CASE( test_free_r_algebra )
 {
 	using namespace cxxmath;
-	using polynomial_tag = polynomial_tag<int, std::string_view>;
+	using polynomial_tag = free_r_algebra_tag<int, std::string_view>;
 	using polynomial_ring = default_ring_t<polynomial_tag>;
 	
 	static_assert( polynomial_ring::is_abelian_ring() == false );

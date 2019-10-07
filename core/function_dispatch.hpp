@@ -40,16 +40,29 @@ static constexpr auto function = function_object_v<default_ ## function ## _disp
 template<class ...Tags, class F>
 static constexpr bool is_default_dispatchable( F f )
 {
-	using dispatch_tag = common_tag_t<Tags>;
-	return f.supports_tag<dispatch_tag>();
+	using dispatch_tag = common_tag_t<Tags...>;
+	return f.template supports_tag<dispatch_tag>();
 }
 
-#ifdef CXXMATH_DEFINE_DEFAULT_DISPATCHED_OPERATOR( op, function ) \
-template<class ...Args, \
-class = std::enable_if_t<is_default_dispatchable<tag_of_t<Args>...>(::cxxmath::function )> \
-> static constexpr decltype(auto) operator ## op( Args &&...args ) { \
-    return::cxxmath::function( std::forward<Args>( args )... ); \
- }
+#ifdef CXXMATH_DEFINE_DEFAULT_DISPATCHED_UNARY_OPERATOR
+#error "CXXMATH_DEFINE_DEFAULT_DISPATCHED_UNARY_OPERATOR is already defined"
+#endif
+#define CXXMATH_DEFINE_DEFAULT_DISPATCHED_UNARY_OPERATOR( op, function ) \
+template<class Arg, \
+class = std::enable_if_t<is_default_dispatchable<tag_of_t<Arg>>(::cxxmath::function )> \
+> static constexpr decltype(auto) operator op( Arg &&arg ) { \
+    return::cxxmath::function( std::forward<Arg>( arg ) ); \
+}
+
+#ifdef CXXMATH_DEFINE_DEFAULT_DISPATCHED_BINARY_OPERATOR
+#error "CXXMATH_DEFINE_DEFAULT_DISPATCHED_BINARY_OPERATOR is already defined"
+#endif
+#define CXXMATH_DEFINE_DEFAULT_DISPATCHED_BINARY_OPERATOR( op, function ) \
+template<class Arg1, class Arg2, \
+class = std::enable_if_t<is_default_dispatchable<tag_of_t<Arg1>, tag_of_t<Arg2>>(::cxxmath::function )> \
+> static constexpr decltype(auto) operator op( Arg1 &&arg1, Arg2 &&arg2 ) { \
+    return::cxxmath::function( std::forward<Arg1>( arg1 ), std::forward<Arg2>( arg2 ) ); \
+}
 }
 
 #endif //CXXMATH_CORE_FUNCTION_DISPATCH_HPP

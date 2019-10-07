@@ -20,9 +20,10 @@
 #include "concepts/total_order.hpp"
 
 #include "models/bool.hpp"
+#include "models/free_monoid.hpp"
+#include "models/free_r_algebra.hpp"
 #include "models/function_object.hpp"
 #include "models/int.hpp"
-#include "models/polynomial.hpp"
 #include "models/product_monoid.hpp"
 #include "models/product_set.hpp"
 #include "models/std_get.hpp"

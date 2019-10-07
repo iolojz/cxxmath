@@ -2,10 +2,10 @@
 // Created by jayz on 27.09.19.
 //
 
-#ifndef CXXMATH_MODELS_FREE_MONOID_HPP
-#define CXXMATH_MODELS_FREE_MONOID_HPP
+#ifndef CXXMATH_MODELS_STD_VECTOR_HPP
+#define CXXMATH_MODELS_STD_VECTOR_HPP
 
-#include "../concepts/monoid.hpp"
+#include "concepts/monoid.hpp"
 
 #include <vector>
 
@@ -96,4 +96,4 @@ struct default_set<std_vector_tag<Symbol, Allocator>>
 }
 }
 
-#endif //CXXMATH_MODELS_FREE_MONOID_HPP
+#endif //CXXMATH_MODELS_STD_VECTOR_HPP

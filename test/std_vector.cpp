@@ -6,7 +6,7 @@
 
 #include <boost/test/included/unit_test.hpp>
 
-#include "cxxmath/cxxmath.hpp"
+#include "cxxmath.hpp"
 
 BOOST_AUTO_TEST_CASE( test_monoid_std_vector )
 {

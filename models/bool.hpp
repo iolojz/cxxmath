@@ -5,7 +5,7 @@
 #ifndef CXXMATH_MODELS_BOOL_HPP
 #define CXXMATH_MODELS_BOOL_HPP
 
-#include "../concepts/set.hpp"
+#include "concepts/set.hpp"
 
 namespace cxxmath
 {

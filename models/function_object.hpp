@@ -5,8 +5,8 @@
 #ifndef CXXMATH_MODELS_FUNCTION_OBJECT_HPP
 #define CXXMATH_MODELS_FUNCTION_OBJECT_HPP
 
-#include "../concepts/monoid_fwd.hpp"
-#include "cxxmath/core/concepts.hpp"
+#include "concepts/monoid_fwd.hpp"
+#include "core/concepts.hpp"
 
 namespace cxxmath
 {

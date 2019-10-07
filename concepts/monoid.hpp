@@ -6,7 +6,7 @@
 #define CXXMATH_CONCEPTS_MONOID_HPP
 
 #include "monoid_fwd.hpp"
-#include "../models/function_object.hpp"
+#include "models/function_object.hpp"
 
 namespace cxxmath
 {

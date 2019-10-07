@@ -5,7 +5,7 @@
 #ifndef CXXMATH_CONCEPTS_RING_HPP
 #define CXXMATH_CONCEPTS_RING_HPP
 
-#include "../models/function_object.hpp"
+#include "models/function_object.hpp"
 
 namespace cxxmath
 {

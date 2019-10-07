@@ -5,7 +5,7 @@
 #ifndef CXXMATH_CORE_OPERATOR_HELPERS_HPP
 #define CXXMATH_CORE_OPERATOR_HELPERS_HPP
 
-#include "../concepts/logical.hpp"
+#include "concepts/logical.hpp"
 
 namespace cxxmath
 {

@@ -5,7 +5,7 @@
 #ifndef CXXMATH_MODELS_PRODUCT_MONOID_HPP
 #define CXXMATH_MODELS_PRODUCT_MONOID_HPP
 
-#include "../concepts/monoid.hpp"
+#include "concepts/monoid.hpp"
 
 namespace cxxmath
 {

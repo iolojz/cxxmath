@@ -6,7 +6,7 @@
 #define CXXMATH_CONCEPTS_LOGICAL_HPP
 
 #include "boolean_lattice.hpp"
-#include "../models/function_object.hpp"
+#include "models/function_object.hpp"
 
 namespace cxxmath
 {
