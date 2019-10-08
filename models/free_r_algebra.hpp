@@ -10,6 +10,8 @@
 #include "std_get.hpp"
 #include "function_object.hpp"
 
+#include "core/is_range.hpp"
+
 #include "concepts/r_module.hpp"
 
 #include <boost/range/combine.hpp>
@@ -195,10 +197,25 @@ public:
 			add_assign_( add_assign::apply( fra1, std::move( next_summand ) ), std::forward<Tail>( tail )... );
 		}
 	public:
-		template<class C, class ...Symbols, CXXMATH_ENABLE_IF_TAG_IS(C, tag_of_t<Coefficient>)>
+		template<class C, class ...Symbols, CXXMATH_ENABLE_IF_TAG_IS(C, tag_of_t<Coefficient>),
+		class = std::enable_if_t<!is_range_v<Symbols>>>>
 		static decltype(auto) apply( C &&c, Symbols &&...symbols ) {
 			auto monoid_element = symbol_monoid::one();
 			multiply_assign_( monoid_element, std::forward<Symbols>( symbols )... );
+			return make_element( std::move( monoid_element, std::forward<C>( c ) ) );
+		}
+		
+		template<class C, class Range, CXXMATH_ENABLE_IF_TAG_IS(C, tag_of_t<Coefficient>),
+		class = std::enable_if_t<is_range_v<Range>>>
+		static decltype(auto) apply( C &&c, Range &&r ) {
+			auto first = std::begin( r );
+			auto last = std::end( r );
+			
+			auto monoid_element = symbol_monoid::one();
+			while( first != last ) {
+				multiply_assign_( monoid_element, *first );
+				++first;
+			}
 			return make_element( std::move( monoid_element, std::forward<C>( c ) ) );
 		}
 		

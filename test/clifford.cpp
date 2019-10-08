@@ -12,18 +12,22 @@ using namespace PQuantum;
 
 namespace
 {
+struct gamma_matrix {
+	int index;
+};
+
 struct euclidean_form_int
 {
-	int operator()( const mathutils::gamma_matrix &g1, const mathutils::gamma_matrix &g2 ) const
+	static constexpr int apply( const gamma_matrix &g1, const gamma_matrix &g2 ) const
 	{
-		if( std::get<int>( g1.index.id ) == std::get<int>( g2.index.id ))
+		if( std::get<int>( g1.index ) == std::get<int>( g2.index ))
 			return 1;
 		
 		return 0;
 	}
 };
 
-using clifford_int = clifford<mathutils::gamma_matrix, euclidean_form_int>;
+using clifford_int_spec = clifford_quotient_spec<default_ring_t<int>, euclidean_form_int>;
 }
 
 BOOST_AUTO_TEST_CASE( clifford_algebra_int )
