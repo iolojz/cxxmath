@@ -88,38 +88,38 @@ public:
 	
 	struct negate_in_place {
 		template<class FRA>
-		static FRA &apply( FRA &frm ) {
-			auto &monomial_map = frm.monomials();
+		static FRA &apply( FRA &fra ) {
+			auto &monomial_map = fra.monomials();
 			for( auto &monomial : monomial_map )
 				CoefficientRing::negate_in_place( monomial.second );
-			return frm;
+			return fra;
 		}
 	};
 	
 	struct scalar_multiply_assign {
 		template<class C, class FRA>
-		static FRA &apply( C &&c, FRA &frm ) {
-			auto &monomial_map = frm.monomials();
+		static FRA &apply( C &&c, FRA &fra ) {
+			auto &monomial_map = fra.monomials();
 			for( auto &monomial : monomial_map )
 				CoefficientRing::multiply_assign( monomial.second, c );
-			frm.strip_zeros();
-			return frm;
+			fra.strip_zeros();
+			return fra;
 		}
 	};
 	
 	struct add_assign {
 		template<class FRA1, class FRA2>
-		static FRA1 &apply( FRA1 &frm1, FRA2 &&frm2 ) {
-			auto &monomial_map1 = frm1.monomials();
+		static FRA1 &apply( FRA1 &fra1, FRA2 &&fra2 ) {
+			auto &monomial_map1 = fra1.monomials();
 			
-			if( std::addressof(frm1) == std::addressof(frm2) ) {
+			if( std::addressof(fra1) == std::addressof(fra2) ) {
 				for( auto &term : monomial_map1 )
 					CoefficientRing::add_assign( term.second, term.second );
 				
-				return frm1;
+				return fra1;
 			}
 			
-			const auto &monomial_map2 = frm2.monomials();
+			const auto &monomial_map2 = fra2.monomials();
 			
 			for( const auto &term : monomial_map2 ) {
 				auto insertion_result = monomial_map1.insert( term );
@@ -130,16 +130,16 @@ public:
 				}
 			}
 			
-			return frm1;
+			return fra1;
 		}
 	};
 	
 	struct multiply_assign {
 		template<class FRA1, class FRA2>
-		static FRA1 &apply( FRA1 &frm1, FRA2 &&frm2 ) {
+		static FRA1 &apply( FRA1 &fra1, FRA2 &&fra2 ) {
 			// FIXME: do not take cartesian product for simple multiplications!
-			auto &monomial_map1 = frm1.monomials();
-			auto &&monomial_map2 = frm2.monomials();
+			auto &monomial_map1 = fra1.monomials();
+			auto &&monomial_map2 = fra2.monomials();
 			
 			std::vector<typename monomial_container::value_type> monomials;
 			for( const auto &factor1 : monomial_map1 ) {
@@ -161,8 +161,8 @@ public:
 				}
 			}
 			
-			frm1 = std::move( result );
-			return frm1;
+			fra1 = std::move( result );
+			return fra1;
 		}
 	};
 	
@@ -184,15 +184,15 @@ public:
 		}
 		
 		template<class Product, class FRA>
-		static constexpr void add_assign_( FRA &frm ) {}
+		static constexpr void add_assign_( FRA &fra ) {}
 		
 		template<class Product, class FRA1, class ProductElement, class ...Tail>
-		static constexpr void multiply_assign_( FRA1 &frm1, ProductElement &&p, Tail &&...tail ) {
+		static constexpr void multiply_assign_( FRA1 &fra1, ProductElement &&p, Tail &&...tail ) {
 			auto next_summand = make_element(
 				Product::first( std::forward<ProductElement>( p ) ),
 				Product::second( std::forward<ProductElement>( p ) )
 			);
-			add_assign_( add_assign::apply( frm1, std::move( next_summand ) ), std::forward<Tail>( tail )... );
+			add_assign_( add_assign::apply( fra1, std::move( next_summand ) ), std::forward<Tail>( tail )... );
 		}
 	public:
 		template<class C, class ...Symbols, CXXMATH_ENABLE_IF_TAG_IS(C, tag_of_t<Coefficient>)>
