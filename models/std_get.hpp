@@ -7,6 +7,8 @@
 
 #include "concepts/product.hpp"
 
+#include "std_pair.hpp"
+
 namespace cxxmath
 {
 namespace impl
@@ -16,7 +18,7 @@ struct std_get_0
 	template<class Tag>
 	static constexpr bool supports_tag( void )
 	{
-		return true;
+		return std::is_same_v<std_pair_tag, Tag>;
 	}
 	
 	template<class Arg>

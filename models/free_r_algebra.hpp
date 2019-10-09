@@ -18,8 +18,17 @@
 #include <boost/container/flat_map.hpp>
 
 namespace cxxmath {
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
+template<class Coefficient, class Symbol,
+		class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
+		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
+		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
 struct free_r_algebra_tag {};
+
+template<class> struct is_free_r_algebra_tag : std::false_type {};
+template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
+struct is_free_r_algebra_tag<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>>
+: std::true_type {};
+template<class Tag> static constexpr bool is_free_r_algebra_tag_v = is_free_r_algebra_tag<Tag>::value;
 
 namespace detail {
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
@@ -27,6 +36,7 @@ struct free_r_algebra {
 	using dispatch_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 private:
 	using symbol_monoid = free_monoid<Symbol>;
+	using symbol_monoid_tag = tag_of_t<decltype(symbol_monoid::neutral_element())>;
 	using monomial_monoid = product_monoid<std_get_product, symbol_monoid, typename CoefficientRing::monoid_>;
 	
 	struct less_variables
@@ -65,11 +75,13 @@ private:
 	{};
 	
 	free_r_algebra &operator=( monomial_container &&mm )
-	{ monomial_map = std::move( mm ); }
-	
+	{
+		monomial_map = std::move( mm );
+		return *this;
+	}
+public:
 	monomial_container &monomials() & { return monomial_map; }
 	monomial_container monomials() && { return std::move( monomial_map ); }
-public:
 	const monomial_container &monomials() const & { return monomial_map; }
 	
 	free_r_algebra() = default;
@@ -88,7 +100,7 @@ public:
 		}
 	};
 	
-	struct negate_in_place {
+	struct negate_in_place : supports_tag_helper<dispatch_tag> {
 		template<class FRA>
 		static FRA &apply( FRA &fra ) {
 			auto &monomial_map = fra.monomials();
@@ -98,7 +110,7 @@ public:
 		}
 	};
 	
-	struct scalar_multiply_assign {
+	struct scalar_multiply_assign : supports_tag_helper<dispatch_tag> {
 		template<class C, class FRA>
 		static FRA &apply( C &&c, FRA &fra ) {
 			auto &monomial_map = fra.monomials();
@@ -109,7 +121,7 @@ public:
 		}
 	};
 	
-	struct add_assign {
+	struct add_assign : supports_tag_helper<dispatch_tag> {
 		template<class FRA1, class FRA2>
 		static FRA1 &apply( FRA1 &fra1, FRA2 &&fra2 ) {
 			auto &monomial_map1 = fra1.monomials();
@@ -136,7 +148,7 @@ public:
 		}
 	};
 	
-	struct multiply_assign {
+	struct multiply_assign : supports_tag_helper<dispatch_tag> {
 		template<class FRA1, class FRA2>
 		static FRA1 &apply( FRA1 &fra1, FRA2 &&fra2 ) {
 			// FIXME: do not take cartesian product for simple multiplications!
@@ -152,13 +164,13 @@ public:
 			
 			monomial_container result;
 			for( auto &&monomial : monomials ) {
-				if( equal_Coefficients( monomial.second, CoefficientRing::zero()))
+				if( CoefficientSet::equal( monomial.second, CoefficientRing::zero()))
 					continue;
 				
 				auto insertion_result = result.insert( monomial );
 				if( insertion_result.second == false ) {
-					add_assign_Coefficients( insertion_result.first->second, std::move( monomial.second ));
-					if( equal_Coefficients( insertion_result.first->second, CoefficientRing::zero()))
+					CoefficientRing::add_assign( insertion_result.first->second, std::move( monomial.second ));
+					if( CoefficientSet::equal( insertion_result.first->second, CoefficientRing::zero()))
 						result.erase( insertion_result.first );
 				}
 			}
@@ -170,19 +182,9 @@ public:
 	
 	class make {
 		template<class MonoidElement, class C>
-		static constexpr void make_element( MonoidElement &&m, C &&c ) {
-			monomial_container monomial_map = { std::forward<MonoidElement>( m ), CoefficientRing::one() };
-			
-			using scalar_multiply = concepts::detail::scalar_multiply<scalar_multiply_assign>;
-			return scalar_multiply::apply( std::forward<C>( c ), std::move( monomial_map ) );
-		}
-		
-		template<class MonoidElement>
-		static constexpr void multiply_assign_( MonoidElement &m ) {}
-		
-		template<class MonoidElement1, class MonoidElement2, class ...Tail>
-		static constexpr void multiply_assign_( MonoidElement1 &m1, MonoidElement2 &&m2, Tail &&...tail ) {
-			multiply_assign_( symbol_monoid::multiply_assign( m1, std::forward<MonoidElement2>( m2 ) ), std::forward<Tail>( tail )... );
+		static constexpr free_r_algebra make_element( MonoidElement &&m, C &&c ) {
+			monomial_container monomial_map = { { std::forward<MonoidElement>( m ), std::forward<C>( c ) } };
+			return { std::move( monomial_map ) };
 		}
 		
 		template<class Product, class FRA>
@@ -196,27 +198,29 @@ public:
 			);
 			add_assign_( add_assign::apply( fra1, std::move( next_summand ) ), std::forward<Tail>( tail )... );
 		}
-	public:
-		template<class C, class ...Symbols, CXXMATH_ENABLE_IF_TAG_IS(C, tag_of_t<Coefficient>),
-		class = std::enable_if_t<!is_range_v<Symbols>>>>
-		static decltype(auto) apply( C &&c, Symbols &&...symbols ) {
-			auto monoid_element = symbol_monoid::one();
-			multiply_assign_( monoid_element, std::forward<Symbols>( symbols )... );
-			return make_element( std::move( monoid_element, std::forward<C>( c ) ) );
+		
+		template<class C, class ...Symbols>
+		static decltype(auto) make_from_coefficient_and_symbols( C &&c, Symbols &&...symbols ) {
+			auto monoid_element = ::cxxmath::make<symbol_monoid_tag>( std::forward<Symbols>( symbols )... );
+			return make_element( std::move( monoid_element ), std::forward<C>( c ) );
 		}
 		
-		template<class C, class Range, CXXMATH_ENABLE_IF_TAG_IS(C, tag_of_t<Coefficient>),
-		class = std::enable_if_t<is_range_v<Range>>>
-		static decltype(auto) apply( C &&c, Range &&r ) {
+		template<class C, class Range>
+		static decltype(auto) make_from_coefficient_and_symbol_range( C &&c, Range &&r ) {
 			auto first = std::begin( r );
 			auto last = std::end( r );
-			
-			auto monoid_element = symbol_monoid::one();
-			while( first != last ) {
-				multiply_assign_( monoid_element, *first );
-				++first;
-			}
-			return make_element( std::move( monoid_element, std::forward<C>( c ) ) );
+			auto monoid_element = ::cxxmath::make<symbol_monoid_tag>( first, last );
+			return make_element( std::move( monoid_element ), std::forward<C>( c ) );
+		}
+	public:
+		template<class C, class ...Args, CXXMATH_ENABLE_IF_TAG_IS(C, tag_of_t<Coefficient>)>
+		static decltype(auto) apply( C &&c, Args &&...args ) {
+			if constexpr( sizeof...(Args) == 0 )
+				return make_from_coefficient_and_symbols( std::forward<C>( c ), std::forward<Args>( args )... );
+			else if constexpr( sizeof...(Args) == 1 && is_range_v<std::tuple_element_t<0, std::tuple<Args...>>> )
+				return make_from_coefficient_and_symbol_range( std::forward<C>( c ), std::forward<Args>( args )... );
+			else
+				return make_from_coefficient_and_symbols( std::forward<C>( c ), std::forward<Args>( args )... );
 		}
 		
 		template<class FreeRAlgebra, CXXMATH_ENABLE_IF_TAG_IS(FreeRAlgebra, dispatch_tag)>
@@ -242,7 +246,7 @@ public:
 		}
 	};
 	
-	struct equal {
+	struct equal : supports_tag_helper<dispatch_tag> {
 		static bool apply( const free_r_algebra &fra1, const free_r_algebra &fra2 )
 		{
 			const auto &monomial_map1 = fra1.monomials();
@@ -277,11 +281,22 @@ template<class Coefficient, class Symbol,
 		class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
 		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
 		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
+struct free_r_algebra_set {
+private:
+	using value_type = detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
+public:
+	using type = concepts::set<typename value_type::equal>;
+};
+
+template<class Coefficient, class Symbol,
+		class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
+		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
+		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
 struct free_r_algebra_monoid {
 private:
 	using value_type = detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 public:
-	using type = concepts::assignable_monoid<typename value_type::multiply_assign, impl::false_implementation, typename value_type::one>;
+	using type = concepts::assignable_monoid<typename value_type::multiply_assign, typename value_type::one, impl::false_implementation>;
 };
 
 template<class Coefficient, class Symbol,
@@ -293,7 +308,7 @@ private:
 	using value_type = detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 public:
 	using type = concepts::assignable_group<
-			concepts::assignable_monoid<typename value_type::add_assign, impl::true_implementation, typename value_type::zero>,
+			concepts::assignable_monoid<typename value_type::add_assign, typename value_type::zero, impl::true_implementation>,
 			typename value_type::negate_in_place
 	>;
 };
@@ -323,11 +338,16 @@ template<class Coefficient, class Symbol,
 		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
 		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
 using free_r_algebra = concepts::r_algebra<
-	typename free_r_module<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type,
+	free_r_module<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>,
 	typename free_r_algebra_monoid<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type
 >;
 
 namespace impl {
+template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
+struct default_set<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
+	using type = typename free_r_algebra_set<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type;
+};
+
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
 struct default_monoid<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
 using type = typename free_r_algebra_monoid<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type;
@@ -345,12 +365,22 @@ using type = typename free_r_algebra_ring<Coefficient, Symbol, CoefficientSet, C
 
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
 struct default_r_module<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
-using type = typename free_r_module<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type;
+using type = free_r_module<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 };
 
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
 struct default_r_algebra<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
-using type = typename free_r_algebra<Coefficient, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type;
+using type = free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
+};
+
+template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
+struct make<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
+	template<class ...Args>
+	static constexpr decltype(auto) apply( Args &&...args ) {
+		return ::cxxmath::detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::make::apply(
+			std::forward<Args>( args )...
+		);
+	}
 };
 }
 

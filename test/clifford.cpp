@@ -6,60 +6,74 @@
 
 #include <boost/test/included/unit_test.hpp>
 
-#include "tag_dispatch/tag_dispatch.hpp"
+#include "cxxmath.hpp"
 
-using namespace PQuantum;
-
-namespace
-{
+namespace {
 struct gamma_matrix {
 	int index;
 };
+}
 
+namespace cxxmath {
+namespace impl {
+struct less_gamma_matrix {
+	static constexpr bool apply( const gamma_matrix &g1, const gamma_matrix &g2 ) {
+		return g1.index < g2.index;
+	}
+};
+}
+
+template<> struct default_total_order<gamma_matrix> {
+	using type = concepts::total_order<impl::less_gamma_matrix>;
+};
+}
+
+namespace {
 struct euclidean_form_int
 {
-	static constexpr int apply( const gamma_matrix &g1, const gamma_matrix &g2 ) const
+	static constexpr int apply( const gamma_matrix &g1, const gamma_matrix &g2 )
 	{
-		if( std::get<int>( g1.index ) == std::get<int>( g2.index ))
+		if(  g1.index == g2.index )
 			return 1;
 		
 		return 0;
 	}
 };
 
-using clifford_int_spec = clifford_quotient_spec<default_ring_t<int>, euclidean_form_int>;
+using clifford_int_spec = cxxmath::clifford_quotient_spec<cxxmath::default_ring_t<int>, euclidean_form_int>;
+using free_gamma_algebra_tag = cxxmath::free_r_algebra_tag<int, gamma_matrix>;
+using clifford_tag = cxxmath::quotient_r_algebra_tag<free_gamma_algebra_tag, clifford_int_spec>;
 }
 
 BOOST_AUTO_TEST_CASE( clifford_algebra_int )
 {
-	static constexpr auto lower = mathutils::spacetime_index::index_variance::lower;
-	using polynomial = typename clifford_int::underlying_type;
-	using monomial = typename polynomial::monomial;
-	using make_clifford = make <tag_of_t<clifford_int>>;
+	using namespace cxxmath;
 	
-	const auto gamma_1_symbol = mathutils::gamma_matrix{{ lower, 1 }};
-	const auto gamma_2_symbol = mathutils::gamma_matrix{{ lower, 2 }};
-	const auto gamma_3_symbol = mathutils::gamma_matrix{{ lower, 3 }};
-	const auto gamma_4_symbol = mathutils::gamma_matrix{{ lower, 4 }};
+	static_assert( models_concept_v<int, std_get_product> == false );
 	
-	const auto one = mathutils::abstract_algebra::ring < tag_of_t < clifford_int >> ::one();
+	const auto gamma_1_symbol = gamma_matrix{ 1 };
+	const auto gamma_2_symbol = gamma_matrix{ 2 };
+	const auto gamma_3_symbol = gamma_matrix{ 3 };
+	const auto gamma_4_symbol = gamma_matrix{ 4 };
 	
-	const auto gamma_1 = make_clifford( polynomial{ monomial{{ gamma_1_symbol }, 1 }} );
-	const auto gamma_2 = make_clifford( polynomial{ monomial{{ gamma_2_symbol }, 1 }} );
-	const auto gamma_3 = make_clifford( polynomial{ monomial{{ gamma_3_symbol }, 1 }} );
-	const auto gamma_4 = make_clifford( polynomial{ monomial{{ gamma_4_symbol }, 1 }} );
-	/*
-	BOOST_TEST( gamma_1 * gamma_1 == one );
-	BOOST_TEST( gamma_2 * gamma_2 == one );
-	BOOST_TEST( gamma_3 * gamma_3 == one );
+	const auto one = default_ring_t<clifford_tag>::one();
 	
-	BOOST_TEST( gamma_1 * gamma_2 != -gamma_1 * gamma_2 );
-	BOOST_TEST( gamma_1 * gamma_2 != gamma_2 * gamma_1 );
+	const auto gamma_1 = make<clifford_tag>( 1, gamma_1_symbol );
+	const auto gamma_2 = make<clifford_tag>( 1, gamma_2_symbol );
+	const auto gamma_3 = make<clifford_tag>( 1, gamma_3_symbol );
+	const auto gamma_4 = make<clifford_tag>( 1, gamma_4_symbol );
 	
-	BOOST_TEST( gamma_1 * gamma_2 == -gamma_2 * gamma_1 );
-	BOOST_TEST( gamma_1 * gamma_4 == -gamma_4 * gamma_1 );
+	BOOST_TEST( equal( multiply( gamma_1, gamma_1 ), one ) );
+	BOOST_TEST( equal( multiply( gamma_2, gamma_2 ), one ) );
+	BOOST_TEST( equal( multiply( gamma_3, gamma_3 ), one ) );
 	
-	BOOST_TEST( gamma_1 * gamma_2 * gamma_3 == gamma_2 * gamma_3 * gamma_1 );
-	BOOST_TEST( gamma_2 * gamma_1 * gamma_3 == -gamma_2 * gamma_3 * gamma_1 );
-	BOOST_TEST( gamma_1 * gamma_2 * gamma_1 == -gamma_2 );*/
+	BOOST_TEST( not_equal( multiply( gamma_1, gamma_2 ), negate( multiply( gamma_1, gamma_2 ) ) ) );
+	BOOST_TEST( not_equal( multiply( gamma_1, gamma_2 ), multiply( gamma_2, gamma_1 ) ) );
+	
+	BOOST_TEST( equal( multiply( gamma_1, gamma_2 ), negate( multiply( gamma_2, gamma_1 ) ) ) );
+	BOOST_TEST( equal( multiply( gamma_1, gamma_4 ), negate( multiply( gamma_4, gamma_1 ) ) ) );
+	
+	BOOST_TEST( equal( multiply( gamma_1, multiply( gamma_2, gamma_3 ) ), multiply( gamma_2, multiply( gamma_3, gamma_1 ) ) ) );
+	BOOST_TEST( equal( multiply( gamma_2, multiply( gamma_1, gamma_3 ) ), negate( multiply( gamma_2, multiply( gamma_3, gamma_1 ) ) ) ) );
+	BOOST_TEST( equal( multiply( gamma_1, multiply( gamma_2, gamma_1 ) ), negate( gamma_2 ) ) );
 }

@@ -7,6 +7,7 @@
 
 #include "models/function_object_fwd.hpp"
 #include "core/operator_helpers_fwd.hpp"
+#include "core/concepts.hpp"
 
 namespace cxxmath
 {

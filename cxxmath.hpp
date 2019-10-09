@@ -5,6 +5,7 @@
 #ifndef CXXMATH_HPP
 #define CXXMATH_HPP
 
+#include "core/make.hpp"
 #include "core/dispatch_tags.hpp"
 #include "core/function_dispatch.hpp"
 
@@ -20,12 +21,14 @@
 #include "concepts/total_order.hpp"
 
 #include "models/bool.hpp"
+#include "models/clifford_algebra.hpp"
 #include "models/free_monoid.hpp"
 #include "models/free_r_algebra.hpp"
 #include "models/function_object.hpp"
 #include "models/int.hpp"
 #include "models/product_monoid.hpp"
 #include "models/product_set.hpp"
+#include "models/quotient_r_algebra.hpp"
 #include "models/std_get.hpp"
 #include "models/std_pair.hpp"
 #include "models/std_string_view.hpp"

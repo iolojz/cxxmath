@@ -93,6 +93,13 @@ struct default_set<std_vector_tag<Symbol, Allocator>>
 {
 	using type = concepts::set<impl::equal_std_vector_tag<Symbol, Allocator>>;
 };
+
+template<class Symbol, class Allocator>
+struct make<std_vector_tag<Symbol, Allocator>> {
+	template<class ...Args> static std::vector<Symbol, Allocator> apply( Args &&...args ) {
+		return { std::forward<Args>( args )... };
+	}
+};
 }
 }
 

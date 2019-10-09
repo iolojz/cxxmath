@@ -20,63 +20,90 @@ struct quotient_r_algebra;
 
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder, class RAlgebraQuotientSpec>
 struct quotient_r_algebra<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>, RAlgebraQuotientSpec> {
+	using r_algebra = ::cxxmath::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 	using r_algebra_object = detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 	using r_algebra_tag = tag_of_t<r_algebra_object>;
-	using dispatch_tag = quotient_r_alebra_tag<tag_of_t<r_algebra_object>, RAlgebraQuotientSpec>;
+	using dispatch_tag = quotient_r_algebra_tag<tag_of_t<r_algebra_object>, RAlgebraQuotientSpec>;
 private:
 	r_algebra_object rep;
+public:
+	quotient_r_algebra() = default;
+	quotient_r_algebra( const quotient_r_algebra & ) = default;
+	quotient_r_algebra( quotient_r_algebra && ) = default;
+	
+	explicit quotient_r_algebra( const r_algebra_object &r ) : rep{ r } {
+		RAlgebraQuotientSpec::quotient_map_in_place::apply( rep );
+	}
+	explicit quotient_r_algebra( r_algebra_object &&r ) : rep{ std::move( r ) } {
+		RAlgebraQuotientSpec::quotient_map_in_place::apply( rep );
+	}
+	
+	quotient_r_algebra &operator=( const quotient_r_algebra & ) = default;
+	quotient_r_algebra &operator=( quotient_r_algebra && ) = default;
+	
+	quotient_r_algebra &operator=( const r_algebra_object &r ) {
+		rep = r;
+		RAlgebraQuotientSpec::quotient_map_in_place::apply( rep );
+	};
+	quotient_r_algebra &operator=( r_algebra_object &&r ) {
+		rep = std::move( r );
+		RAlgebraQuotientSpec::quotient_map_in_place::apply( rep );
+	};
 	
 	struct zero {
-		static quotient_r_algebra apply() {
-			return zero<r_algebra_tag>();
+		static constexpr auto apply() {
+			return quotient_r_algebra{ r_algebra::zero() };
 		}
 	};
 	
-	struct negate_in_place {
+	struct negate_in_place : supports_tag_helper<dispatch_tag> {
 		template<class QRA>
-		static QRA &apply( QRA &qra ) {
+		static constexpr QRA &apply( QRA &qra ) {
 			RAlgebraQuotientSpec::negate_in_place::apply( qra.rep );
+			return qra;
 		}
 	};
 	
-	struct scalar_multiply_assign {
+	struct scalar_multiply_assign : supports_tag_helper<dispatch_tag>  {
 		template<class C, class QRA>
-		static QRA &apply( C &&c, QRA &qra ) {
+		static constexpr QRA &apply( C &&c, QRA &qra ) {
 			RAlgebraQuotientSpec::scalar_multiply_assign::apply( std::forward<C>( c ), qra.rep );
+			return qra;
 		}
 	};
 	
-	struct add_assign {
+	struct add_assign : supports_tag_helper<dispatch_tag>  {
 		template<class QRA1, class QRA2>
-		static QRA1 &apply( QRA1 &qra1, QRA2 &&qra2 ) {
+		static constexpr QRA1 &apply( QRA1 &qra1, QRA2 &&qra2 ) {
 			RAlgebraQuotientSpec::add_assign::apply( qra1.rep, std::forward<QRA2>( qra2 ).rep );
+			return qra1;
 		}
 	};
 	
-	struct multiply_assign {
+	struct multiply_assign : supports_tag_helper<dispatch_tag>  {
 		template<class QRA1, class QRA2>
-		static QRA1 &apply( QRA1 &qra1, QRA2 &&qra2 ) {
+		static constexpr QRA1 &apply( QRA1 &qra1, QRA2 &&qra2 ) {
 			RAlgebraQuotientSpec::multiply_assign::apply( qra1.rep, std::forward<QRA2>( qra2 ).rep );
+			return qra1;
 		}
 	};
 	
 	struct make {
 		template<class ...Args>
-		static decltype(auto) apply( Args &&...args ) {
-			quotient_r_algebra result = make<tag_of_t<r_algebra_object>>( std::forward<Args>( args )... );
-			RAlgebraQuotientSpec::quotient_map_in_place::apply( result.rep );
+		static constexpr quotient_r_algebra apply( Args &&...args ) {
+			return quotient_r_algebra{ ::cxxmath::make<tag_of_t<r_algebra_object>>( std::forward<Args>( args )... ) };
 		}
 	};
 	
 	struct one {
-		static r_algebra_object apply() {
-			return one<r_algebra_tag>();
+		static constexpr auto apply() {
+			return quotient_r_algebra{ r_algebra::one() };
 		}
 	};
 	
-	struct equal {
+	struct equal : supports_tag_helper<dispatch_tag>  {
 		template<class QRA1, class QRA2>
-		static decltype(auto) apply( QRA1 &&qra1, QRA2 &&qra2 )
+		static constexpr decltype(auto) apply( QRA1 &&qra1, QRA2 &&qra2 )
 		{
 			return RAlgebraQuotientSpec::equal::apply( std::forward<QRA1>( qra1 ).rep, std::forward<QRA2>( qra2 ).rep );
 		}
@@ -85,11 +112,19 @@ private:
 }
 
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
+struct quotient_r_algebra_set {
+private:
+	using value_type = detail::quotient_r_algebra<FreeRAlgebraTag, RAlgebraQuotientSpec>;
+public:
+	using type = concepts::set<typename value_type::equal>;
+};
+
+template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct quotient_r_algebra_monoid {
 private:
 	using value_type = detail::quotient_r_algebra<FreeRAlgebraTag, RAlgebraQuotientSpec>;
 public:
-	using type = concepts::assignable_monoid<typename value_type::multiply_assign, typename RAlgebraQuotientSpec::multiplication_is_commutative, typename value_type::one>;
+	using type = concepts::assignable_monoid<typename value_type::multiply_assign, typename value_type::one, typename RAlgebraQuotientSpec::multiplication_is_commutative>;
 };
 
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
@@ -98,7 +133,7 @@ private:
 	using value_type = detail::quotient_r_algebra<FreeRAlgebraTag, RAlgebraQuotientSpec>;
 public:
 	using type = concepts::assignable_group<
-	concepts::assignable_monoid<typename value_type::add_assign, impl::true_implementation, typename value_type::zero>,
+	concepts::assignable_monoid<typename value_type::add_assign, typename value_type::zero, impl::true_implementation>,
 	typename value_type::negate_in_place
 	>;
 };
@@ -106,8 +141,8 @@ public:
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct quotient_r_algebra_ring {
 	using type = concepts::ring<
-	quotient_r_algebra_group<FreeRAlgebraTag, RAlgebraQuotientSpec>,
-	quotient_r_algebra_monoid<FreeRAlgebraTag, RAlgebraQuotientSpec>
+	typename quotient_r_algebra_group<FreeRAlgebraTag, RAlgebraQuotientSpec>::type,
+	typename quotient_r_algebra_monoid<FreeRAlgebraTag, RAlgebraQuotientSpec>::type
 	>;
 };
 
@@ -124,6 +159,11 @@ typename quotient_r_algebra_monoid<FreeRAlgebraTag, RAlgebraQuotientSpec>::type
 >;
 
 namespace impl {
+template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
+struct default_set<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
+	using type = typename quotient_r_algebra_set<FreeRAlgebraTag, RAlgebraQuotientSpec>::type;
+};
+
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct default_monoid<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
 	using type = typename quotient_r_algebra_monoid<FreeRAlgebraTag, RAlgebraQuotientSpec>::type;
@@ -152,9 +192,9 @@ struct default_r_algebra<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotien
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct make<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
 	template<class ...Args> static constexpr decltype(auto) apply( Args &&...args ) {
-		return detail::quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>::make::apply(
+		return ::cxxmath::detail::quotient_r_algebra<FreeRAlgebraTag, RAlgebraQuotientSpec>::make::apply(
 			std::forward<Args>( args )...
-		)
+		);
 	}
 };
 }

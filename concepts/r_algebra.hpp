@@ -26,9 +26,9 @@ struct r_algebra
 	static constexpr auto negate_in_place = r_module_::negate_in_place;
 	static constexpr auto scalar_multiply = r_module_::scalar_multiply;
 	static constexpr auto scalar_multiply_assign = r_module_::scalar_multiply_assign;
-	static constexpr auto multiply = monoid_::multiply;
-	static constexpr auto multiply_assign = monoid_::multiply_assign;
-	static constexpr auto one = monoid_::one;
+	static constexpr auto multiply = monoid_::compose;
+	static constexpr auto multiply_assign = monoid_::compose_assign;
+	static constexpr auto one = monoid_::neutral_element;
 };
 }
 

@@ -24,6 +24,10 @@ add_executable(product_monoid product_monoid.cpp)
 target_link_libraries(product_monoid)
 add_test(product_monoid product_monoid)
 
-add_executable(polynomial free_r_algebra.cpp)
-target_link_libraries(polynomial)
-add_test(polynomial polynomial)
+add_executable(free_r_algebra free_r_algebra.cpp)
+target_link_libraries(free_r_algebra)
+add_test(free_r_algebra free_r_algebra)
+
+add_executable(clifford clifford.cpp)
+target_link_libraries(clifford)
+add_test(clifford clifford)

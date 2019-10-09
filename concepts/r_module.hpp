@@ -16,7 +16,7 @@ struct r_module
 {
 	using abelian_group = AbelianGroup;
 	
-	static constexpr auto zero = abelian_group::zero;
+	static constexpr auto zero = abelian_group::neutral_element;
 	static constexpr auto add = abelian_group::compose;
 	static constexpr auto add_assign = abelian_group::compose_assign;
 	static constexpr auto negate = abelian_group::inverse;

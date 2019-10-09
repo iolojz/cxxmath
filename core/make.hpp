@@ -12,7 +12,7 @@ namespace impl {
 template<class Tag> struct make : unsupported_implementation {};
 }
 
-template<class Tag> static constexpr make = function_object_v<impl::make<Tag>>;
+template<class Tag> static constexpr auto make = function_object_v<impl::make<Tag>>;
 }
 
 #endif //CXXMATH_CORE_MAKE_HPP
