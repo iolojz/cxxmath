@@ -32,13 +32,13 @@ struct less_from_total_order
 template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spec {
 	using multiplication_is_commutative = impl::false_implementation;
 	
-	struct negate_in_place {
+	struct negate_in_place : commutes_with_quotient_map_helper<true> {
 		template<class FRA> static constexpr decltype(auto) apply( FRA &&fra ) {
 			return default_r_algebra_t<tag_of_t<FRA>>::negate_in_place( std::forward<FRA>( fra ) );
 		}
 	};
 	
-	struct scalar_multiply_assign
+	struct scalar_multiply_assign : commutes_with_quotient_map_helper<true>
 	{
 		template<class Scalar, class FRA>
 		static constexpr decltype(auto) apply( Scalar &&s, FRA &&fra )
@@ -49,7 +49,7 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 		}
 	};
 	
-	struct add_assign {
+	struct add_assign : commutes_with_quotient_map_helper<false> {
 		template<class FRA1, class FRA2>
 		static constexpr decltype(auto) apply( FRA1 &fra1, FRA2 &&fra2 )
 		{
@@ -58,7 +58,7 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 		}
 	};
 
-	struct multiply_assign
+	struct multiply_assign : commutes_with_quotient_map_helper<false>
 	{
 		template<class FRA1, class FRA2>
 		static constexpr decltype( auto ) apply( FRA1 &fra1, FRA2 &&fra2 )

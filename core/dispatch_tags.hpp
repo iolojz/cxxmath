@@ -12,6 +12,16 @@ namespace cxxmath
 namespace detail
 {
 template<class, class = void>
+struct has_member_type : std::false_type
+{
+};
+
+template<class T>
+struct has_member_type<T, std::void_t<typename T::type>> : std::true_type
+{
+};
+
+template<class, class = void>
 struct has_dispatch_tag : std::false_type
 {
 };
@@ -45,8 +55,10 @@ struct tag_of
 	using type = typename detail::tag_of<T, detail::has_dispatch_tag<T>::value>::type;
 };
 
+template<class Tag1, class Tag2, class = void>
+struct common_tag {};
 template<class Tag1, class Tag2>
-struct common_tag
+struct common_tag<Tag1, Tag2, std::enable_if_t<detail::has_member_type<std::common_type<Tag1, Tag2>>::value>>
 {
 	using type = std::common_type_t<Tag1, Tag2>;
 };
@@ -70,11 +82,23 @@ struct common_tag<Tag>
 	using type = Tag;
 };
 
+namespace detail {
+template<class Tag1, class Tag2, class TagTuple, class = void> struct common_tag {};
+
 template<class Tag1, class Tag2, class ...Tags>
-struct common_tag<Tag1, Tag2, Tags...>
+struct common_tag<Tag1, Tag2, std::tuple<Tags...>, std::enable_if_t<has_member_type<impl::common_tag<Tag1, Tag2>>::value>>
 {
-	using type = common_tag_t<impl::common_tag_t<Tag1, Tag2>, Tags...>;
+	using type = ::cxxmath::common_tag_t<impl::common_tag_t<Tag1, Tag2>, Tags...>;
 };
+}
+
+template<class Tag1, class Tag2, class ...Tags>
+struct common_tag<Tag1, Tag2, Tags...> : detail::common_tag<Tag1, Tag2, std::tuple<Tags...>> {};
+
+template<class ...Args> struct have_common_tag {
+	static constexpr bool value = detail::has_member_type<common_tag<tag_of_t<Args>...>>::value;
+};
+template<class ...Args> static constexpr auto have_common_tag_v = have_common_tag<Args...>::value;
 
 template<class DispatchTag>
 struct supports_tag_helper

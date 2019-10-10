@@ -32,14 +32,11 @@ struct models_concept<DispatchTag, concepts::boolean_lattice<And, Or, Not>>
 
 CXXMATH_DEFINE_CONCEPT( boolean_lattice )
 
-CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( and_, default_boolean_lattice_t
-)
+CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( and_, boolean_lattice )
 
-CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( or_, default_boolean_lattice_t
-)
+CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( or_, boolean_lattice )
 
-CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( not_, default_boolean_lattice_t
-)
+CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( not_, boolean_lattice )
 
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_BINARY_OPERATOR( &&, and_ )
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_BINARY_OPERATOR( ||, or_ )

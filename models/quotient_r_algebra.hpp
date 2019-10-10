@@ -50,6 +50,9 @@ public:
 		RAlgebraQuotientSpec::quotient_map_in_place::apply( rep );
 	};
 	
+	const r_algebra_object &representative() const { return rep; }
+	r_algebra_object &representative() { return rep; }
+	
 	struct zero {
 		static constexpr auto apply() {
 			return quotient_r_algebra{ r_algebra::zero() };
@@ -198,6 +201,48 @@ struct make<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
 	}
 };
 }
+
+template<bool Flag>
+struct commutes_with_quotient_map_helper {
+	static constexpr bool commutes_with_quotient_map() {
+		return Flag;
+	}
+};
+
+#ifdef CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION
+#error "CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION is already defined."
+#endif
+#define CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( function ) \
+struct function { \
+	template<class ...Args> static constexpr decltype(auto) apply( Args &&...args ) { \
+		using first_ ## function = typename FirstQuotientSpec::function; \
+		using second_ ## function = typename SecondQuotientSpec::function; \
+		\
+		if constexpr( first_ ## function::commutes_with_quotient_map() ) \
+			return second_ ## function::apply( std::forward<Args>( args )... ); \
+		else \
+			return SecondQuotientSpec::quotient_map_in_place( first_ ## function::apply( std::forward<Args>( args )... ) ); \
+	} \
+};
+
+template<class SecondQuotientSpec, class FirstQuotientSpec> struct composed_quotients {
+	using multiplication_is_commutative = typename SecondQuotientSpec::multiplication_is_commutative;
+	
+	CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( negate_in_place )
+	CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( scalar_multiply_assign )
+	CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( add_assign )
+	CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( multiply_assign )
+	
+	class quotient_map_in_place {
+		template<class FRA> static constexpr decltype(auto) apply( FRA &&fra ) {
+			return SecondQuotientSpec::quotient_map_in_place::apply( FirstQuotientSpec::quotient_map_in_place::apply( std::forward<FRA>( fra ) ) );
+		}
+	};
+	
+	using equal = typename SecondQuotientSpec::equal;
+};
+
+#undef CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION
 }
 
 #endif //CXXMATH_CONCEPTS_QUOTIENT_HPP

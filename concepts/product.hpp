@@ -56,11 +56,8 @@ template<class Product> static constexpr default_make_product_dispatch<Product> 
 
 CXXMATH_DEFINE_CONCEPT( product )
 
-CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( first, default_product_t
-)
-
-CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( second, default_product_t
-)
+CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( first, product )
+CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( second, product )
 }
 
 #endif //CXXMATH_CONCEPTS_PRODUCT_HPP

@@ -67,7 +67,6 @@ template<class BinaryOperator, class Inverse> static constexpr auto binary_opera
 template<class UnaryOperatorAssign> static constexpr auto unary_operator_v = function_object_v<impl::unary_operator<UnaryOperatorAssign>>;
 }
 
-
 #ifdef CXXMATH_COMMUTATIVE_BINARY_OPERATOR_OVERLOAD
 #error "CXXMATH_COMMUTATIVE_BINARY_OPERATOR_OVERLOAD already defined"
 #endif

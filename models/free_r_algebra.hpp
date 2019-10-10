@@ -11,6 +11,7 @@
 #include "function_object.hpp"
 
 #include "core/is_range.hpp"
+#include "core/erase_if.hpp"
 
 #include "concepts/r_module.hpp"
 
@@ -61,7 +62,7 @@ private:
 	void strip_zeros( void )
 	{
 		erase_if( monomial_map, []( const auto &monomial ) {
-			return equal_Coefficients( std_get_product::second( monomial ), CoefficientRing::zero() );
+			return CoefficientSet::equal( std_get_product::second( monomial ), CoefficientRing::zero() );
 		} );
 	}
 	
@@ -144,6 +145,7 @@ public:
 				}
 			}
 			
+			fra1.strip_zeros();
 			return fra1;
 		}
 	};
