@@ -35,6 +35,12 @@ namespace detail {
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
 struct free_r_algebra {
 	using dispatch_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
+	
+	using coefficient = Coefficient;
+	using symbol = Symbol;
+	using coefficient_set = CoefficientSet;
+	using coefficient_ring = CoefficientRing;
+	using symbol_total_order = SymbolTotalOrder;
 private:
 	using symbol_monoid = free_monoid<Symbol>;
 	using symbol_monoid_tag = tag_of_t<decltype(symbol_monoid::neutral_element())>;

@@ -233,7 +233,7 @@ template<class SecondQuotientSpec, class FirstQuotientSpec> struct composed_quot
 	CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( add_assign )
 	CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( multiply_assign )
 	
-	class quotient_map_in_place {
+	struct quotient_map_in_place {
 		template<class FRA> static constexpr decltype(auto) apply( FRA &&fra ) {
 			return SecondQuotientSpec::quotient_map_in_place::apply( FirstQuotientSpec::quotient_map_in_place::apply( std::forward<FRA>( fra ) ) );
 		}
