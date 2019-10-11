@@ -10,15 +10,45 @@
 
 namespace {
 struct gamma_matrix {
-	int index;
+	std::variant<int, std::string_view> index;
 };
+struct formal_metric_entry {
+	std::variant<int, std::string_view> index1, index2;
+};
+struct manifold_dimension {};
 }
 
 namespace cxxmath {
 namespace impl {
+struct less_manifold_indices {
+	static constexpr bool apply( const std::variant<int, std::string_view> &i1, const std::variant<int, std::string_view> &i2 ) {
+		if( std::holds_alternative<int>( i1) ) {
+			if( std::holds_alternative<int>( i2 ) )
+				return std::get<int>( i1 ) < std::get<int>( i2 );
+			return true;
+		}
+		
+		if( std::holds_alternative<int>( i2) )
+			return false;
+		
+		return std::get<std::string_view>( i1 ) < std::get<std::string_view>( i2 );
+	}
+};
+
 struct less_gamma_matrix {
 	static constexpr bool apply( const gamma_matrix &g1, const gamma_matrix &g2 ) {
-		return g1.index < g2.index;
+		return less_manifold_indices::apply( g1.index, g2.index );
+	}
+};
+
+struct less_formal_metric_entry {
+	static constexpr bool apply( const formal_metric_entry &fme1, const formal_metric_entry &fme2 ) {
+		if( fme1.index1 < fme2.index1 )
+			return true;
+		if( fme1.index1 > fme2.index1 )
+			return false;
+		
+		return fme1.index2 < fme2.index2;
 	}
 };
 }
@@ -26,19 +56,68 @@ struct less_gamma_matrix {
 template<> struct default_total_order<gamma_matrix> {
 	using type = concepts::total_order<impl::less_gamma_matrix>;
 };
+template<> struct default_total_order<formal_metric_entry> {
+	using type = concepts::total_order<impl::less_formal_metric_entry>;
+};
+template<> struct default_total_order<manifold_dimension> {
+	using type = concepts::total_order<impl::false_implementation>;
+};
 }
 
 namespace {
+using d_int_polynomial_tag = cxxmath::free_r_algebra_tag<int, manifold_dimension>;
+using d_int_polynomial = decltype(make<d_int_polynomial_tag>());
+
+using coefficient_tag = cxxmath::free_r_algebra_tag<d_int_polynomial, formal_metric_entry>;
+using coefficient = decltype(make<coefficient_tag>());
+
+using gamma_polynomial_tag = cxxmath::free_r_algebra_tag<coefficient_tag, gamma_matrix>;
+using gamma_polynomial = decltype(make<gamma_polynomial_tag>());
+
 struct euclidean_form_int
 {
-	static constexpr int apply( const gamma_matrix &g1, const gamma_matrix &g2 )
+	static constexpr coefficient apply( const gamma_matrix &g1, const gamma_matrix &g2 )
 	{
-		if(  g1.index == g2.index )
-			return 1;
+		if( std::holds_alternative<int>( g1.index ) ) {
+			if( std::holds_alternative<int>( g2.index ) ) {
+				if( std::get<int>( g1.index ) == std::get<int>( g2.index ) )
+					return make<coefficient_tag>( make<d_int_polynomial_tag>( 1 ) );
+				return make<coefficient_tag>( make<d_int_polynomial_tag>( 0 ) );
+			}
+			
+			return make<coefficient_tag>( make<d_int_polynomial_tag>( 1 ), formal_metric_entry{ g1.index, g2.index } );
+		}
 		
-		return 0;
+		if( std::holds_alternative<int>( g2.index ) )
+			return make<coefficient_tag>( make<d_int_polynomial_tag>( 1 ), formal_metric_entry{ g1.index, g2.index } );
+		
+		if( std::get<std::string_view>( g1.index ) == std::get<std::string_view>( g2.index ) )
+			return make<coefficient_tag>( make<d_int_polynomial_tag>( 1, manifold_dimension ) );
+		
+		return make<coefficient_tag>( make<d_int_polynomial_tag>( 1 ), formal_metric_entry{ g1.index, g2.index } );
 	}
 };
+
+struct gamma_index_handler {
+	using less_indices = impl::less_manifold_indices;
+	
+	struct extract_indices {
+		static constexpr auto apply( const gamma_matrix &gm ) {
+			return gm.index;
+		}
+		
+		static constexpr auto apply( const formal_metric_entry &fme ) {
+			return gm.index;
+		}
+	};
+};
+
+using clifford_quotient_spec = cxxmath::composed_quotients<
+	cxxmath::abstract_index_quotient_spec<gamma_index_handler>,
+	cxxmath::clifford_quotient_spec<
+		default_ring_t<coefficient_tag>, euclidean_form_int
+	>
+>;
 
 using clifford_int_spec = cxxmath::clifford_quotient_spec<cxxmath::default_ring_t<int>, euclidean_form_int>;
 using free_gamma_algebra_tag = cxxmath::free_r_algebra_tag<int, gamma_matrix>;
