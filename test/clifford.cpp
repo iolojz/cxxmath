@@ -98,16 +98,68 @@ struct euclidean_form_int
 	}
 };
 
+template<class T> struct is_variant : std::false_type {};
+template<class T> static constexpr bool is_variant_v = is_variant<T>::value;
+
+template<class ...Alternatives> struct is_variant<std::variant<Alternatives...>> : std::true_type {};
+
 struct gamma_index_handler {
 	using less_indices = impl::less_manifold_indices;
 	
 	struct extract_indices {
-		static constexpr auto apply( const gamma_matrix &gm ) {
-			return gm.index;
+		static constexpr std::array<std::variant<int, std::string_view>, 1> apply( const gamma_matrix &gm ) {
+			return { gm.index };
 		}
 		
-		static constexpr auto apply( const formal_metric_entry &fme ) {
-			return gm.index;
+		static constexpr std::array<std::variant<int, std::string_view>, 2> apply( const formal_metric_entry &fme ) {
+			return { fm.index1, fm.index2 };
+		}
+		
+		static constexpr std::array<std::variant<int, std::string_view>, 0> apply( const manifold_dimension & ) {
+			return {};
+		}
+	};
+	
+	template<class FRATag> class contract_indices {
+		static_assert( std::is_same_v<FRATag, gamma_polynomial_tag> );
+		
+		template<class Range, class IndexRange>
+		static gamma_polynomial apply_impl( const gamma_matrix &gm1, const Range &parts, const gamma_matrix &gm2, const IndexRange &indices ) {
+			if( parts.size() != 0 )
+				throw std::rundtime_error( "part size should be zero" );
+			if( indices.size != 1 )
+				throw std::rundtime_error( "indices size should be one" );
+			if( gm1.index != indices[0] )
+				throw std::rundtime_error( "gm1 index mismatch" );
+			if( gm2.index != indices[0] )
+				throw std::rundtime_error( "gm2 index mismatch" );
+			
+			throw std::rundtime_error( "This should never be called." );
+		}
+		
+		template<class Range, class IndexRange>
+		static gamma_polynomial apply_impl( const gamma_matrix &gm1, const Range &parts, const formal_metric_entry &fme2, const IndexRange &indices ) {
+		
+		}
+		
+		template<class Range, class IndexRange>
+		static gamma_polynomial apply_impl( const formal_metric_entry &fme1, const Range &parts, const gamma_matrix &gm2, const IndexRange &indices ) {
+		
+		}
+		
+		template<class Range, class IndexRange>
+		static gamma_polynomial apply_impl( const formal_metric_entry &fme1, const Range &parts, const formal_metric_entry &fme2, const IndexRange &indices ) {
+		
+		}
+	public:
+		template<class IndexedObject1, class Range, class IndexedObject2, class IndexRange>
+		static gamma_polynomial apply( const IndexedObject1 &io1, const Range &parts, const IndexedObject2 &io2, const IndexRange &indices ) {
+			if constexpr( is_variant_v<IndexedObject1> )
+				return std::visit( [&] ( const auto &io ) { return apply( io, parts, io2, indices ); }, io1 );
+			else if constexpr( is_variant_v<IndexedObject1> )
+				return std::visit( [&] ( const auto &io ) { return apply( io1, parts, io, indices ); }, io2 );
+			else
+				return apply_impl( io1, parts, io2, indices );
 		}
 	};
 };
