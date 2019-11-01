@@ -251,70 +251,105 @@ class abstract_index_quotient_spec
 		return indices;
 	}
 	
-	template<class Range1, class Range2>
-	static auto first_index_coincidence( Range1 &&range1, Range2 &&range2, bool disjoint )
+	template<class IteratorPair, class Range1, class Range2, bool disjoint>
+	static IteratorPair &advance_index_pair( IteratorPair &iterator_pair, const Range1 &r1, const Range2 &r2 ) {
+		if( iterator_pair.second == std::end( r2 ) ) {
+			++(iterator_pair.first);
+			
+			if constexpr( disjoint )
+				iterator_pair.second = std::begin( r1 );
+			else
+				iterator_pair.second = iterator_pair.first;
+		} else
+			++(iterator_pair.second);
+		
+		return iterator_pair;
+	};
+	
+	template<class IteratorPair, class Range1, class Range2>
+	static auto find_index_coincidence( IteratorPair begin, Range1 &&range1, Range2 &&range2, bool disjoint )
 	{
-		for( auto r1_it = std::begin( range1 ); r1_it != std::end( range1 ); ++r1_it ) {
-			auto r1_indices = IndexHandler::extract_indices( *r1_it );
+		using indices_type = decltype( IndexHandler::extract_indices( *std::begin( range1 )));
+		using common_indices_type = std::decay_t<decltype( index_intersection( std::declval<indices_type>(),
+																			   std::declval<indices_type>()))>;
+		
+		if( begin.first == std::end( range1 ) || begin.second == std::end( range2 ) )
+			return std::make_tuple( std::end( range1 ), std::end( range2 ), common_indices_type{} );
+		
+		auto end = std::make_pair( std::end( range1 ), std::end( range2 ) );
+		do {
+			auto r1_indices = IndexHandler::extract_indices( *(begin.first) );
 			std::sort( std::begin( r1_indices ), std::end( r1_indices ),
 					   function_object_v<typename IndexHandler::less_indices> );
 			auto r1_indices_moved = boost::make_iterator_range( std::make_move_iterator( std::begin( r1_indices )),
 																std::make_move_iterator( std::end( r1_indices )));
 			
-			if( disjoint == false ) {
+			if( disjoint == false && begin.first == begin.second ) {
 				auto self_intersection = index_intersection( r1_indices_moved );
 				if( self_intersection.size() != 0 )
-					return std::make_tuple( r1_it, r1_it, std::move( self_intersection ));
+					return std::make_tuple( begin.first, begin.first, std::move( self_intersection ));
 			}
 			
-			for( auto r2_it = disjoint ? std::begin( range2 ) : r1_it + 1; r2_it != std::end( range2 ); ++r2_it ) {
-				auto r2_indices = IndexHandler::extract_indices( *r2_it );
-				std::sort( r2_indices.begin(), r2_indices.end(),
-						   function_object_v<typename IndexHandler::less_indices> );
-				auto r2_indices_moved = boost::make_iterator_range( std::make_move_iterator( std::begin( r2_indices )),
-																	std::make_move_iterator( std::end( r2_indices )));
-				
-				auto common_indices = index_intersection( r1_indices_moved, r2_indices_moved );
-				
-				if( std::size( common_indices ) != 0 )
-					return std::make_tuple( r1_it, r2_it, std::move( common_indices ));
-			}
-		}
+			auto r2_indices = IndexHandler::extract_indices( *(begin.second) );
+			std::sort( r2_indices.begin(), r2_indices.end(),
+					   function_object_v<typename IndexHandler::less_indices> );
+			auto r2_indices_moved = boost::make_iterator_range( std::make_move_iterator( std::begin( r2_indices )),
+																std::make_move_iterator( std::end( r2_indices )));
+			
+			auto common_indices = index_intersection( r1_indices_moved, r2_indices_moved );
+			
+			if( std::size( common_indices ) != 0 )
+				return std::make_tuple( begin.first, begin.second, std::move( common_indices ));
+		} while( advance_iterator_pair( begin, range1, range2, disjoint ) != end );
 		
-		using indices_type = decltype( IndexHandler::extract_indices( *std::begin( range1 )));
-		using common_indices_type = std::decay_t<decltype( index_intersection( std::declval<indices_type>(),
-																			   std::declval<indices_type>()))>;
 		return std::make_tuple( std::end( range1 ), std::end( range2 ), common_indices_type{} );
 	}
 	
 	template<class FRA, class SymbolRange>
-	static FRA perform_ss_contractions( SymbolRange &&symbols )
+	static auto perform_ss_contractions( SymbolRange &&symbols )
 	{
-		auto index_coincidence = find_index_coincidence( symbols, symbols, false );
-		auto common_indices = std::get<2>( index_coincidence );
+		static_assert( std::is_rvalue_reference_v<SymbolRange &&> );
 		
-		if( std::size( common_indices ) == 0 )
-			return make<tag_of_t<FRA>>( FRA::coefficient_ring::zero(), std::forward<SymbolRange>( symbols ));
+		auto begin = std::make_pair( std::begin( symbols ), std::begin( symbols ) );
+		auto end = std::make_pair( std::end( symbols ), std::end( symbols ) );
 		
-		auto s1_it = std::make_move_iterator( std::get<0>( index_coincidence ));
-		auto s2_it = std::make_move_iterator( std::get<1>( index_coincidence ));
+		auto advance = [&symbols] ( auto &iterator_pair ) {
+			return advance_iterator_pair( iterator_pair, symbols, symbols, false );
+		};
 		
-		auto middle = ( s1_it == s2_it ) ? boost::make_iterator_range( s1_it, s1_it ) : boost::make_iterator_range(
-		std::next( s1_it ), s2_it );
+		for( auto current = begin; current.first != end.first; advance( current ) ) {
+			auto index_coincidence = find_index_coincidence( current, end, false );
+			auto common_indices = std::get<2>( index_coincidence );
+			
+			if( std::size( common_indices ) == 0 )
+				return make<tag_of_t<FRA>>( FRA::coefficient_ring::one(), std::forward<SymbolRange>( symbols ) );
+			
+			current = std::make_pair( std::get<0>( index_coincidence ), std::get<1>( index_coincidence ) );
+			
+			auto s1_it = std::make_move_iterator( current.first );
+			auto s2_it = std::make_move_iterator( current.second );
+			
+			auto middle = ( s1_it == s2_it ) ? boost::make_iterator_range( s1_it, s1_it ) : boost::make_iterator_range(
+					std::next( s1_it ), s2_it );
+			
+			auto contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *s1_it, std::move( middle ),
+																							 *s2_it,
+																							 std::move( common_indices ));
+			if( contracted == std::nullopt )
+				continue;
+			
+			auto head = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
+											 boost::make_iterator_range( std::make_move_iterator( symbols.begin()),
+																		 s1_it ));
+			auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
+											 boost::make_iterator_range( ++s2_it, std::make_move_iterator( symbols.end())));
+			
+			contracted *= std::move( tail );
+			head *= std::move( contracted );
+			return quotient_map_in_place( head );
+		}
 		
-		auto contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *s1_it, std::move( middle ),
-																						 *s2_it,
-																						 std::move( common_indices ));
-		
-		auto head = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
-										 boost::make_iterator_range( std::make_move_iterator( symbols.begin()),
-																	 s1_it ));
-		auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
-										 boost::make_iterator_range( s2_it, std::make_move_iterator( symbols.end())));
-		
-		contracted *= std::move( tail );
-		head *= std::move( contracted );
-		return quotient_map_in_place( head );
+		return make<tag_of_t<FRA>>( FRA::coefficient_ring::one(), std::forward<SymbolRange>( symbols ) );
 	}
 	
 	template<class FRA, class Coefficient, class SymbolRange>
@@ -362,51 +397,6 @@ class abstract_index_quotient_spec
 		
 		return result;
 	}
-	
-	template<class FRA, class C>
-	static FRA perform_cc_contractions( C &&c )
-	{
-		using coefficient = typename FRA::coefficient;
-		auto c_decomposed = detail::coefficient_decomposer::apply( std::forward<C>( c ));
-		bool performed_contraction = false;
-		
-		auto result = default_ring_t<tag_of_t<FRA>>::zero();
-		for( auto &&cpart : c_decomposed ) {
-			auto index_coincidence = find_index_coincidence( cpart, cpart, false );
-			auto common_indices = std::get<2>( index_coincidence );
-			
-			if( std::size( common_indices ) == 0 ) {
-				result += make<tag_of_t<FRA>>( detail::coefficient_composer<coefficient>::apply( std::move( cpart )));
-				continue;
-			}
-			
-			performed_contraction = true;
-			auto c1_it = std::make_move_iterator( std::get<0>( index_coincidence ));
-			auto c2_it = std::make_move_iterator( std::get<1>( index_coincidence ));
-			
-			auto middle = ( c1_it == c2_it ) ? boost::make_iterator_range( c1_it, c1_it ) : boost::make_iterator_range(
-			std::next( c1_it ), c2_it );
-			
-			auto head = detail::coefficient_composer<coefficient>::apply(
-			boost::make_iterator_range( std::make_move_iterator( std::begin( cpart )), c1_it ));
-			auto contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *c1_it,
-																							 std::move( middle ),
-																							 *c2_it, std::move(
-			common_indices ));
-			auto tail = detail::coefficient_composer<coefficient>::apply(
-			boost::make_iterator_range( c2_it, std::end( cpart )));
-			
-			default_r_module<tag_of_t<FRA>>::scalar_multiply_in_place( std::move( head ), contracted );
-			default_r_module<tag_of_t<FRA>>::scalar_multiply_in_place( std::move( tail ), contracted );
-			result += std::move( contracted );
-		}
-		
-		if( performed_contraction )
-			quotient_map_in_place( result );
-		
-		return result;
-	}
-
 public:
 	using multiplication_is_commutative = impl::false_implementation;
 	
