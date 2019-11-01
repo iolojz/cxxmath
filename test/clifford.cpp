@@ -107,12 +107,22 @@ struct gamma_index_handler {
 	using less_indices = impl::less_manifold_indices;
 	
 	struct extract_indices {
-		static constexpr std::array<std::variant<int, std::string_view>, 1> apply( const gamma_matrix &gm ) {
-			return { gm.index };
+		static constexpr std::vector<std::string_view> apply( const gamma_matrix &gm ) {
+			if( std::holds_alternative<std::string_view>( gm ) )
+				return { std::get<std::string_view>( gm.index ) };
+			else
+				return {};
 		}
 		
-		static constexpr std::array<std::variant<int, std::string_view>, 2> apply( const formal_metric_entry &fme ) {
-			return { fm.index1, fm.index2 };
+		static constexpr std::vector<std::string_view> apply( const formal_metric_entry &fme ) {
+			std::vector<std::string_view> indices;
+			
+			if( std::holds_alternative<std::string_view>( fme.index1 ) )
+				indices.push_back( std::get<std::string_view>( fme.index1 ) );
+			if( std::holds_alternative<std::string_view>( fme.index2 ) )
+				indices.push_back( std::get<std::string_view>( fme.index2 ) );
+			
+			return indices;
 		}
 		
 		static constexpr std::array<std::variant<int, std::string_view>, 0> apply( const manifold_dimension & ) {
@@ -125,26 +135,27 @@ struct gamma_index_handler {
 		
 		template<class Range, class IndexRange>
 		static gamma_polynomial apply_impl( const gamma_matrix &gm1, const Range &parts, const gamma_matrix &gm2, const IndexRange &indices ) {
-			if( parts.size() != 0 )
-				throw std::rundtime_error( "part size should be zero" );
-			if( indices.size != 1 )
-				throw std::rundtime_error( "indices size should be one" );
-			if( gm1.index != indices[0] )
-				throw std::rundtime_error( "gm1 index mismatch" );
-			if( gm2.index != indices[0] )
-				throw std::rundtime_error( "gm2 index mismatch" );
-			
 			throw std::rundtime_error( "This should never be called." );
 		}
 		
 		template<class Range, class IndexRange>
-		static gamma_polynomial apply_impl( const gamma_matrix &gm1, const Range &parts, const formal_metric_entry &fme2, const IndexRange &indices ) {
-		
+		static gamma_polynomial apply_impl( gamma_matrix gm1, const Range &parts, const formal_metric_entry &fme2, const IndexRange &indices ) {
+			throw std::rundtime_error( "This should never be called." );
 		}
 		
 		template<class Range, class IndexRange>
 		static gamma_polynomial apply_impl( const formal_metric_entry &fme1, const Range &parts, const gamma_matrix &gm2, const IndexRange &indices ) {
-		
+			if( indices.size != 1 )
+				throw std::rundtime_error( "indices size should be one" );
+			if( gm2.index == fme1.index1 )
+				gm2.index = fme1.index2;
+			else if( gm2.index == fme1.index2 )
+				gm2.index = fme1.index1;
+			else
+				throw std::rundtime_error( "gm2/fme1 index mismatch" );
+			
+			using coefficient_ring = typename FRATag::coefficient_ring;
+			return make<FRATag>( coefficient_ring::zero(), std::move( gm2 ) );
 		}
 		
 		template<class Range, class IndexRange>

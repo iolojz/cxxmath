@@ -306,10 +306,8 @@ class abstract_index_quotient_spec
 	}
 	
 	template<class FRA, class SymbolRange>
-	static auto perform_ss_contractions( SymbolRange &&symbols )
+	static std::optional<FRA> perform_ss_contractions( SymbolRange &&symbols )
 	{
-		static_assert( std::is_rvalue_reference_v<SymbolRange &&> );
-		
 		auto begin = std::make_pair( std::begin( symbols ), std::begin( symbols ) );
 		auto end = std::make_pair( std::end( symbols ), std::end( symbols ) );
 		
@@ -318,11 +316,11 @@ class abstract_index_quotient_spec
 		};
 		
 		for( auto current = begin; current.first != end.first; advance( current ) ) {
-			auto index_coincidence = find_index_coincidence( current, end, false );
+			auto index_coincidence = find_index_coincidence( current, symbols, symbols, false );
 			auto common_indices = std::get<2>( index_coincidence );
 			
 			if( std::size( common_indices ) == 0 )
-				return make<tag_of_t<FRA>>( FRA::coefficient_ring::one(), std::forward<SymbolRange>( symbols ) );
+				break;
 			
 			current = std::make_pair( std::get<0>( index_coincidence ), std::get<1>( index_coincidence ) );
 			
@@ -332,62 +330,141 @@ class abstract_index_quotient_spec
 			auto middle = ( s1_it == s2_it ) ? boost::make_iterator_range( s1_it, s1_it ) : boost::make_iterator_range(
 					std::next( s1_it ), s2_it );
 			
-			auto contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *s1_it, std::move( middle ),
-																							 *s2_it,
-																							 std::move( common_indices ));
+			auto contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *s1_it, std::move( middle ), *s2_it, std::move( common_indices ) );
 			if( contracted == std::nullopt )
 				continue;
 			
 			auto head = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
-											 boost::make_iterator_range( std::make_move_iterator( symbols.begin()),
+											 boost::make_iterator_range( std::make_move_iterator( std::begin( symbols.begin ) ),
 																		 s1_it ));
 			auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
-											 boost::make_iterator_range( ++s2_it, std::make_move_iterator( symbols.end())));
+											 boost::make_iterator_range( ++s2_it, std::make_move_iterator( std::end( symbols.end ) ) ) );
 			
-			contracted *= std::move( tail );
-			head *= std::move( contracted );
+			head *= std::move( *contracted );
+			head *= std::move( tail );
 			return quotient_map_in_place( head );
 		}
 		
-		return make<tag_of_t<FRA>>( FRA::coefficient_ring::one(), std::forward<SymbolRange>( symbols ) );
+		return std::nullopt;
+	}
+	
+	template<class FRA, class CPartRange, class SymbolRange>
+	static std::optional<FRA> perform_cparts_contractions( CPartRange &&cparts, SymbolRange &&symbols )
+	{
+		auto begin = std::make_pair( std::begin( cparts ), std::begin( symbols ) );
+		
+		auto advance = [&symbols] ( auto &iterator_pair ) {
+			return advance_iterator_pair( iterator_pair, cparts, symbols, true );
+		};
+		
+		for( auto current = begin; current.first != end.first; advance( current ) ) {
+			auto index_coincidence = find_index_coincidence( current, cparts, symbols, true );
+			auto common_indices = std::get<2>( index_coincidence );
+			
+			if( std::size( common_indices ) == 0 )
+				break;
+			
+			current = std::make_pair( std::get<0>( index_coincidence ), std::get<1>( index_coincidence ) );
+			
+			auto cpart_it = std::make_move_iterator( current.first );
+			auto s_it = std::make_move_iterator( current.second );
+			
+			auto middle = boost::range::join(
+				boost::make_iterator_range( std::next( cpart_it ), std::make_move_iterator( std::end( cparts ) ) ),
+				boost::make_iterator_range( std::make_move_iterator( std::begin( symbols ) ), s_it )
+			);
+			
+			auto contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *cpart_it, std::move( middle ), *s_it, std::move( common_indices ));
+			if( contracted == std::nullopt )
+				continue;
+			
+			auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
+				boost::make_iterator_range( std::make_move_iterator( std::begin( cparts ) ), cpart_it )
+			);
+			auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
+											 boost::make_iterator_range( ++s_it, std::make_move_iterator( std::end( symbols ) ) ) );
+			
+			scalar_multiply_assign( std::move( coefficient ), contracted );
+			contracted *= std::move( tail );
+			
+			return quotient_map_in_place( contracted );
+		}
+		
+		return std::nullopt;
 	}
 	
 	template<class FRA, class Coefficient, class SymbolRange>
-	static FRA perform_cs_contractions( Coefficient &&c, SymbolRange &&symbols )
+	static std::optional<FRA> perform_cs_contractions( Coefficient &&c, SymbolRange &&symbols )
 	{
+		static_assert( std::is_rvalue_reference_v<Coefficient &&> );
+		
 		using coefficient = typename FRA::coefficient;
-		auto c_decomposed = detail::coefficient_decomposer::apply( std::forward<Coefficient>( c ));
+		auto c_decomposed_view = detail::coefficient_decomposer::apply( c );
 		bool performed_contraction = false;
+		
+		if( std::size( c_decomposed ) == 1 ) {
+			auto contracted = perform_cparts_contractions<FRA>( std::move( *std::begin( c_decomposed ) ), std::move( symbols ) );
+			return contracted;
+		}
+		
+		std::vector<std::decay_t<decltype(*std::begin(symbols))>> symbol_copies;
+		boost::range::copy( symbols, std::back_inserter( symbol_copies ) );
+		
+		auto current = std::begin( c_decomposed );
+		auto next_last = std::prev( std::end( c_decomposed ) );
+		std::optional<FRA> contracted;
+		
+		do {
+			contracted = perform_cparts_contractions<FRA>( std::move( *current ), std::move( symbol_copies ) );
+			
+			if( contracted ) {
+				auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
+					boost::make_iterator_range( std::begin( c_decomposed_view ), current )
+				);
+				symbol_copies = decltype(symbol_copies){};
+				boost::range::copy( symbols, std::back_inserter( symbol_copies ) );
+				
+				auto result = make<tag_of_t<FRA>>( std::move( coefficient ), std::move( symbol_copies ) );
+				result += *contracted;
+				
+				while( ++current != next_last ) {
+					symbol_copies = decltype(symbol_copies){};
+					boost::range::copy( symbols, std::back_inserter( symbol_copies ) );
+					contracted = perform_cparts_contractions<FRA>( std::move( *current ), std::move( symbol_copies ) );
+					
+					if( contracted )
+						result += *contracted;
+					else {
+						auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
+							boost::make_iterator_range( current, std::next( current ) )
+						);
+						result += make<tag_of_t<FRA>>( std::move( coefficient ), std::move( symbol_copies ) );
+					}
+				}
+				
+				contracted = perform_cparts_contractions<FRA>( std::move( *next_last ), std::forward<SymbolRange>( symbols ) );
+				
+				if( contracted )
+					result += *contracted;
+				else {
+					auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
+						boost::make_iterator_range( next_last, std::end( c_decomposed ) )
+					);
+					result += make<tag_of_t<FRA>>( std::move( coefficient ), std::forward<SymbolRange>( symbols ) );
+				}
+				
+				return result;
+			}
+		} while( ++cpart != next_last );
+		
+		if(  )
 		
 		auto result = default_ring_t<tag_of_t<FRA>>::zero();
 		for( auto &&cpart : c_decomposed ) {
-			auto index_coincidence = find_index_coincidence( cpart, symbols, true );
-			auto common_indices = std::get<2>( index_coincidence );
+			std::vector<std::decay_t<decltype(*std::begin(symbols))>> symbol_copies;
+			boost::range::copy( symbols,  )
 			
-			if( std::size( common_indices ) == 0 ) {
-				result += make<tag_of_t<FRA >>( detail::coefficient_composer<coefficient>::apply( std::move( cpart )),
-												symbols );
-				continue;
-			}
-			
-			performed_contraction = true;
-			auto cpart_it = std::make_move_iterator( std::get<0>( index_coincidence ));
-			auto s_it = std::make_move_iterator( std::get<1>( index_coincidence ));
-			
-			auto head = detail::coefficient_composer<coefficient>::apply(
-			boost::make_iterator_range( std::make_move_iterator( std::begin( cpart )), cpart_it ));
-			std::vector<typename detail::extend_variant<typename decltype(cpart_it)::value_type, typename decltype(s_it)::value_type>::type> middle_parts = {
-			std::advance( cpart_it ), std::make_move_iterator( std::end( cpart )) };
-			middle_parts.insert( middle_parts.end(), std::begin( symbols ), s_it );
-			auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
-											 boost::make_iterator_range( s_it, std::end( symbols )));
-			
-			auto contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *cpart_it,
-																							 std::move( middle_parts ),
-																							 *s_it, std::move(
-			common_indices ));
-			contracted *= tail;
-			default_r_module<tag_of_t<FRA>>::scalar_multiply_in_place( std::move( head ), contracted );
+			auto contracted = perform_cparts_contractions<FRA>( std::move( cpart ), symbols )
 			
 			result += std::move( contracted );
 		}
