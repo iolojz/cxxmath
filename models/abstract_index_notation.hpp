@@ -403,7 +403,7 @@ class abstract_index_quotient_spec
 		bool performed_contraction = false;
 		
 		if( std::size( c_decomposed ) == 1 ) {
-			auto contracted = perform_cparts_contractions<FRA>( std::move( *std::begin( c_decomposed ) ), std::move( symbols ) );
+			auto contracted = perform_cparts_contractions<FRA>( std::move( *std::begin( c_decomposed ) ), std::forward<SymbolRange>( symbols ) );
 			return contracted;
 		}
 		
@@ -457,22 +457,29 @@ class abstract_index_quotient_spec
 			}
 		} while( ++cpart != next_last );
 		
-		if(  )
+		contracted = perform_cparts_contractions<FRA>( std::move( *next_last ), std::move( symbol_copies ) );
 		
-		auto result = default_ring_t<tag_of_t<FRA>>::zero();
-		for( auto &&cpart : c_decomposed ) {
-			std::vector<std::decay_t<decltype(*std::begin(symbols))>> symbol_copies;
-			boost::range::copy( symbols,  )
+		if( contracted ) {
+			auto result = *contracted;
+			auto next_next_last = std::prev( next_last );
+			for( current = std::begin( c_decomposed ); current != next_next_last; ++current ) {
+				symbol_copies = decltype(symbol_copies){};
+				boost::range::copy( symbols, std::back_inserter( symbol_copies ) );
+				
+				auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
+					boost::make_iterator_range( current, std::next( current ) );
+				);
+				result += make<tag_of_t<FRA>>( std::move( coefficient ), std::move( symbol_copies ) );
+			}
 			
-			auto contracted = perform_cparts_contractions<FRA>( std::move( cpart ), symbols )
-			
-			result += std::move( contracted );
+			auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
+				boost::make_iterator_range( *next_next_last, *next_last );
+			);
+			result += make<tag_of_t<FRA>>( std::move( coefficient ), std::forward<SymbolRange>( symbols ) );
+			return result;
 		}
 		
-		if( performed_contraction )
-			quotient_map_in_place( result );
-		
-		return result;
+		return make<tag_of_t<FRA>>( std::move( coefficient ), std::forward<SymbolRange>( symbols ) );
 	}
 public:
 	using multiplication_is_commutative = impl::false_implementation;
