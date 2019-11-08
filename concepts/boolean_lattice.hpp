@@ -2,10 +2,9 @@
 // Created by jayz on 27.09.19.
 //
 
-#ifndef CXXMATH_CONCEPTS_BOOLEAN_ALGEBRA_HPP
-#define CXXMATH_CONCEPTS_BOOLEAN_ALGEBRA_HPP
+#ifndef CXXMATH_CONCEPTS_BOOLEAN_LATTICE_HPP
+#define CXXMATH_CONCEPTS_BOOLEAN_LATTICE_HPP
 
-#include "core/concepts.hpp"
 #include "models/function_object.hpp"
 
 namespace cxxmath

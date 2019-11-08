@@ -5,29 +5,20 @@
 #ifndef CXXMATH_CORE_DISPATCH_TAGS_HPP
 #define CXXMATH_CORE_DISPATCH_TAGS_HPP
 
-#include <type_traits>
+#include "helpers/has_member_type.hpp"
+#include "helpers/wrap_template_members.hpp"
 
 namespace cxxmath
 {
 namespace detail
 {
 template<class, class = void>
-struct has_member_type : std::false_type
-{
-};
-
-template<class T>
-struct has_member_type<T, std::void_t<typename T::type>> : std::true_type
-{
-};
-
-template<class, class = void>
 struct has_dispatch_tag : std::false_type
 {
 };
 
 template<class T>
-struct has_dispatch_tag<T, std::void_t<typename T::dispatch_tag>> : std::true_type
+struct has_dispatch_tag<T, std::void_t<typename T::cxxmath_dispatch_tag>> : std::true_type
 {
 };
 
@@ -62,7 +53,6 @@ struct common_tag<Tag1, Tag2, std::enable_if_t<detail::has_member_type<std::comm
 {
 	using type = std::common_type_t<Tag1, Tag2>;
 };
-template<class Tag1, class Tag2> using common_tag_t = typename common_tag<Tag1, Tag2>::type;
 }
 
 template<class T>
@@ -70,11 +60,11 @@ struct tag_of
 {
 	using type = typename impl::tag_of<std::decay_t<T>>::type;
 };
-template<class T> using tag_of_t = typename tag_of<T>::type;
+DEFINE_TYPE_ALIAS_TEMPLATE(tag_of)
 
 template<class ...Tags>
 struct common_tag;
-template<class ...Tags> using common_tag_t = typename common_tag<Tags...>::type;
+DEFINE_TYPE_ALIAS_TEMPLATE(common_tag)
 
 template<class Tag>
 struct common_tag<Tag>
@@ -88,7 +78,7 @@ template<class Tag1, class Tag2, class TagTuple, class = void> struct common_tag
 template<class Tag1, class Tag2, class ...Tags>
 struct common_tag<Tag1, Tag2, std::tuple<Tags...>, std::enable_if_t<has_member_type<impl::common_tag<Tag1, Tag2>>::value>>
 {
-	using type = ::cxxmath::common_tag_t<impl::common_tag_t<Tag1, Tag2>, Tags...>;
+	using type = ::cxxmath::common_tag_t<typename common_tag<Tag1, Tag2>::type, Tags...>;
 };
 }
 
@@ -98,7 +88,7 @@ struct common_tag<Tag1, Tag2, Tags...> : detail::common_tag<Tag1, Tag2, std::tup
 template<class ...Args> struct have_common_tag {
 	static constexpr bool value = detail::has_member_type<common_tag<tag_of_t<Args>...>>::value;
 };
-template<class ...Args> static constexpr auto have_common_tag_v = have_common_tag<Args...>::value;
+DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(have_common_tag)
 
 template<class DispatchTag>
 struct supports_tag_helper

@@ -10,60 +10,58 @@
 
 namespace cxxmath
 {
-namespace concepts
+namespace impl
 {
-namespace detail
-{
-template<class Less>
-struct less_equal_total_order : forward_supported_tags<Less>
-{
-	template<class Arg1, class Arg2>
-	static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
-	{
-		return not_( Less::apply( arg2, arg1 ));
-	}
-};
-
-template<class Less>
-struct equal_total_order : forward_supported_tags<Less>
-{
-	template<class Arg1, class Arg2>
-	static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
-	{
-		return and_( not_( Less::apply( arg1, arg2 )), not_( Less::apply( arg2, arg1 )));
-	}
-};
-
-template<class Less>
-struct greater_equal_total_order : forward_supported_tags<Less>
-{
-	template<class Arg1, class Arg2>
-	static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
-	{
-		return not_( Less::apply( arg1, arg2 ));
-	}
-};
-
-template<class Less>
-struct greater_total_order : forward_supported_tags<Less>
-{
-	template<class Arg1, class Arg2>
-	static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
-	{
-		return Less::apply( arg2, arg1 );
-	}
-};
-}
-
+namespace concepts {
 template<class Less>
 struct total_order
 {
+	template<class Less>
+	struct less_equal_impl : forward_supported_tags<Less>
+	{
+		template<class Arg1, class Arg2>
+		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
+		{
+			return not_( Less::apply( arg2, arg1 ));
+		}
+	};
+	
+	template<class Less>
+	struct equal_impl : forward_supported_tags<Less>
+	{
+		template<class Arg1, class Arg2>
+		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
+		{
+			return and_( not_( Less::apply( arg1, arg2 )), not_( Less::apply( arg2, arg1 )));
+		}
+	};
+	
+	template<class Less>
+	struct greater_equal_impl : forward_supported_tags<Less>
+	{
+		template<class Arg1, class Arg2>
+		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
+		{
+			return not_( Less::apply( arg1, arg2 ));
+		}
+	};
+	
+	template<class Less>
+	struct greater_impl : forward_supported_tags<Less>
+	{
+		template<class Arg1, class Arg2>
+		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
+		{
+			return Less::apply( arg2, arg1 );
+		}
+	};
+	
 	static constexpr auto less = function_object_v<Less>;
 	
-	static constexpr auto less_equal = function_object_v<detail::less_equal_total_order<Less>>;
-	static constexpr auto equal = function_object_v<detail::equal_total_order<Less>>;
-	static constexpr auto greater_equal = function_object_v<detail::greater_equal_total_order<Less>>;
-	static constexpr auto greater = function_object_v<detail::greater_total_order<Less>>;
+	static constexpr auto less_equal = function_object_v<less_equal_impl<Less>>;
+	static constexpr auto equal = function_object_v<equal_impl<Less>>;
+	static constexpr auto greater_equal = function_object_v<greater_equal_impl<Less>>;
+	static constexpr auto greater = function_object_v<greater_impl<Less>>;
 	
 	static constexpr auto not_equal = compose( not_, equal );
 };

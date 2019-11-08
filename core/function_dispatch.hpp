@@ -16,7 +16,7 @@ struct always_false
 {
 	static constexpr bool value = false;
 };
-template<class T> static constexpr bool always_false_v = always_false<T>::value;
+DEFINE_STATIC_CONSTEXPR_MEMBER_TEMPLATE(always_false)
 }
 
 #ifdef CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION
@@ -25,7 +25,7 @@ template<class T> static constexpr bool always_false_v = always_false<T>::value;
 #define CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( function, concept ) \
 struct default_ ## function ## _dispatch { \
     template<class DispatchTag> static constexpr bool supports_tag( void ) { \
-    	if constexpr( has_default_ ## concept<DispatchTag> ) \
+    	if constexpr( has_default_ ## concept ## _v<DispatchTag> ) \
         	return decltype(default_ ## concept ##_t<DispatchTag>())::function.template supports_tag<DispatchTag>(); \
         else \
         	return false; \
@@ -35,7 +35,7 @@ struct default_ ## function ## _dispatch { \
         using dispatch_tag = common_tag_t<tag_of_t<Args>...>; \
         static_assert( supports_tag<dispatch_tag>() ); \
         \
-        return decltype(default_ ## concept ##_t<dispatch_tag>())::function( std::forward<Args>( args )... ); \
+        return decltype(default_ ## concept ## _t<dispatch_tag>())::function( std::forward<Args>( args )... ); \
     } \
 }; \
 static constexpr auto function = function_object_v<default_ ## function ## _dispatch>;
