@@ -9,9 +9,9 @@
 
 namespace cxxmath
 {
-namespace impl
+namespace bool_model
 {
-struct and_bool : supports_tag_helper<bool>
+struct and_ : supports_tag_helper<bool>
 {
 	static constexpr bool apply( bool b1, bool b2 ) noexcept
 	{
@@ -19,7 +19,7 @@ struct and_bool : supports_tag_helper<bool>
 	}
 };
 
-struct or_bool : supports_tag_helper<bool>
+struct or_ : supports_tag_helper<bool>
 {
 	static constexpr bool apply( bool b1, bool b2 ) noexcept
 	{
@@ -27,7 +27,7 @@ struct or_bool : supports_tag_helper<bool>
 	}
 };
 
-struct not_bool : supports_tag_helper<bool>
+struct not_ : supports_tag_helper<bool>
 {
 	static constexpr bool apply( bool b ) noexcept
 	{
@@ -35,7 +35,7 @@ struct not_bool : supports_tag_helper<bool>
 	}
 };
 
-struct if_bool
+struct if_
 {
 	template<class Then, class Else>
 	static constexpr auto apply( bool b, Then &&then, Else &&else_ )
@@ -44,30 +44,32 @@ struct if_bool
 	}
 };
 
-struct equal_bool : supports_tag_helper<bool>
+struct equal : supports_tag_helper<bool>
 {
 	static constexpr bool apply( bool b1, bool b2 ) noexcept
 	{
 		return b1 == b2;
 	}
 };
+}
 
+namespace impl {
 template<>
 struct default_boolean_lattice<bool>
 {
-	using type = concepts::boolean_lattice<impl::and_bool, impl::or_bool, impl::not_bool>;
+	using type = concepts::boolean_lattice<bool_model::and_, bool_model::or_, bool_model::not_>;
 };
 
 template<>
 struct default_logical<bool>
 {
-	using type = concepts::logical<default_boolean_lattice_t < bool>, impl::if_bool>;
+	using type = concepts::logical<default_boolean_lattice_t<bool>, bool_model::if_>;
 };
 
 template<>
 struct default_set<bool>
 {
-	using type = concepts::set<impl::equal_bool>;
+	using type = concepts::set<bool_model::equal>;
 };
 }
 
@@ -87,29 +89,32 @@ struct tag_of<std::false_type>
 {
 	using type = std_bool_constant_tag;
 };
+}
 
-struct and_std_bool_constant : supports_tag_helper<std_bool_constant_tag>
+namespace model_std_bool_constant
+{
+struct and_ : supports_tag_helper<std_bool_constant_tag>
 {
 	template<bool b1, bool b2>
-	static constexpr std::bool_constant<b1 && b2> apply( std::bool_constant <b1>, std::bool_constant <b2> ) noexcept
+	static constexpr std::bool_constant<b1 && b2> apply( std::bool_constant<b1>, std::bool_constant<b2> ) noexcept
 	{ return {}; }
 };
 
-struct or_std_bool_constant : supports_tag_helper<std_bool_constant_tag>
+struct or_ : supports_tag_helper<std_bool_constant_tag>
 {
 	template<bool b1, bool b2>
-	static constexpr std::bool_constant<b1 || b2> apply( std::bool_constant <b1>, std::bool_constant <b2> ) noexcept
+	static constexpr std::bool_constant<b1 || b2> apply( std::bool_constant<b1>, std::bool_constant<b2> ) noexcept
 	{ return {}; }
 };
 
-struct not_std_bool_constant : supports_tag_helper<std_bool_constant_tag>
+struct not_ : supports_tag_helper<std_bool_constant_tag>
 {
 	template<bool b>
-	static constexpr std::bool_constant<!b> apply( std::bool_constant <b> ) noexcept
+	static constexpr std::bool_constant<!b> apply( std::bool_constant<b> ) noexcept
 	{ return {}; }
 };
 
-struct if_std_bool_constant
+struct if_
 {
 	template<class Then, class Else>
 	static constexpr auto apply( std::true_type, Then &&then, Else && )
@@ -124,29 +129,31 @@ struct if_std_bool_constant
 	}
 };
 
-struct equal_std_bool_constant : supports_tag_helper<std_bool_constant_tag>
+struct equal : supports_tag_helper<std_bool_constant_tag>
 {
 	template<bool b1, bool b2>
-	static constexpr std::bool_constant<b1 == b2> apply( std::bool_constant <b1>, std::bool_constant <b2> ) noexcept
+	static constexpr std::bool_constant<b1 == b2> apply( std::bool_constant<b1>, std::bool_constant<b2> ) noexcept
 	{ return {}; }
 };
+}
 
+namespace impl {
 template<>
 struct default_boolean_lattice<std_bool_constant_tag>
 {
-	using type = concepts::boolean_lattice<impl::and_std_bool_constant, impl::or_std_bool_constant, impl::not_std_bool_constant>;
+	using type = concepts::boolean_lattice<model_std_bool_constant::and_, model_std_bool_constant::or_, model_std_bool_constant::not_>;
 };
 
 template<>
 struct default_logical<std_bool_constant_tag>
 {
-	using type = concepts::logical<default_boolean_lattice_t < std_bool_constant_tag>, impl::if_std_bool_constant>;
+	using type = concepts::logical<default_boolean_lattice_t<std_bool_constant_tag>, model_std_bool_constant::if_>;
 };
 
 template<>
 struct default_set<std_bool_constant_tag>
 {
-	using type = concepts::set<impl::equal_std_bool_constant>;
+	using type = concepts::set<model_std_bool_constant::equal>;
 };
 }
 }

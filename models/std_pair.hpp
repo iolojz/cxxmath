@@ -20,8 +20,11 @@ struct tag_of<std::pair<First, Second>>
 {
 	using type = std_pair_tag;
 };
+}
 
-struct first_std_pair : supports_tag_helper<std_pair_tag>
+namespace model_std_pair
+{
+struct first : supports_tag_helper<std_pair_tag>
 {
 	template<class First, class Second>
 	static constexpr auto apply( std::pair<First, Second> &&p )
@@ -42,7 +45,7 @@ struct first_std_pair : supports_tag_helper<std_pair_tag>
 	}
 };
 
-struct second_std_pair : supports_tag_helper<std_pair_tag>
+struct second : supports_tag_helper<std_pair_tag>
 {
 	template<class First, class Second>
 	static constexpr auto apply( std::pair<First, Second> &&p )
@@ -63,20 +66,33 @@ struct second_std_pair : supports_tag_helper<std_pair_tag>
 	}
 };
 
+template<class UniqueFirstTag = void, class UniqueSecondTag = void>
+using product = concepts::product<first, second, UniqueFirstTag, UniqueSecondTag>;
+}
+
+namespace impl {
 template<>
 struct default_product<std_pair_tag>
 {
-	using type = concepts::product<impl::first_std_pair, impl::second_std_pair>;
+	using type = model_std_pair::product<>;
 };
 
-template<>
-struct make_product<default_product_t < std_pair_tag>>
+template<class UniqueFirstTag, class UniqueSecondTag>
+struct make_product<model_std_pair::product<UniqueFirstTag, UniqueSecondTag>>
 {
-template<class Arg1, class Arg2>
-static constexpr auto apply( Arg1 &&arg1, Arg2 &&arg2 )
-{
-	return std::make_pair( std::forward<Arg1>( arg1 ), std::forward<Arg2>( arg2 ));
-}
+	template<class Arg1, class Arg2>
+	static constexpr auto apply( Arg1 &&arg1, Arg2 &&arg2 )
+	{
+		if constexpr( std::is_void_v<UniqueFirstTag> ) {
+			if constexpr( std::is_void_v<UniqueSecondTag> )
+				return std::make_pair( std::forward<Arg1>( arg1 ), std::forward<Arg2>( arg2 ));
+			else
+				return std::make_pair( std::forward<Arg1>( arg1 ), make<UniqueSecondTag>( std::forward<Arg2>( arg2 ) ) );
+		} else if constexpr( std::is_void_v<UniqueSecondTag> )
+			return std::make_pair( make<UniqueSecondTag>( std::forward<Arg1>( arg1 ) ), std::forward<Arg2>( arg2 ) );
+		else
+			return std::make_pair( make<UniqueSecondTag>( std::forward<Arg1>( arg1 ) ), make<UniqueSecondTag>( std::forward<Arg2>( arg2 ) ) );
+	}
 };
 }
 }

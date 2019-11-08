@@ -14,7 +14,7 @@ namespace impl
 {
 namespace concepts {
 template<class Less>
-struct total_order
+class total_order
 {
 	template<class Less>
 	struct less_equal_impl : forward_supported_tags<Less>
@@ -55,7 +55,7 @@ struct total_order
 			return Less::apply( arg2, arg1 );
 		}
 	};
-	
+public:
 	static constexpr auto less = function_object_v<Less>;
 	
 	static constexpr auto less_equal = function_object_v<less_equal_impl<Less>>;

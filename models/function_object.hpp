@@ -17,7 +17,7 @@ struct function_object_tag
 template<class Implementation>
 struct function_object
 {
-	using dispatch_tag = function_object_tag;
+	using cxxmath_dispatch_tag = function_object_tag;
 	using implementation = Implementation;
 	
 	template<class Tag>
@@ -62,7 +62,7 @@ struct unsupported_implementation
 	template<class ...Args, class False = void>
 	static constexpr void apply( Args &&... )
 	{
-		static_assert( detail::always_false_v < False > , "Unsupported implementation." );
+		static_assert( detail::always_false_v<False>, "Unsupported implementation." );
 	}
 };
 
@@ -91,8 +91,9 @@ struct false_implementation
 	static constexpr bool apply( Args &&... )
 	{ return false; }
 };
+}
 
-namespace detail
+namespace model_function_object
 {
 template<class Impl1, class Impl2>
 struct composed_function_object
@@ -109,9 +110,8 @@ struct composed_function_object
 		return Impl1::apply( Impl2::apply( std::forward<Args>( args )... ));
 	}
 };
-}
 
-struct compose_function_object : supports_tag_helper<function_object_tag>
+struct compose : supports_tag_helper<function_object_tag>
 {
 	template<class F1, class F2>
 	static constexpr auto apply( F1, F2 ) noexcept
@@ -123,22 +123,24 @@ struct compose_function_object : supports_tag_helper<function_object_tag>
 	}
 };
 
-struct is_abelian_function_object
+struct is_abelian
 {
 	static constexpr std::false_type apply( void ) noexcept
 	{ return {}; }
 };
 
-struct neutral_element_function_object
+struct neutral_element
 {
 	static constexpr auto apply( void ) noexcept
 	{ return cxxmath::identity; }
 };
+}
 
+namespace impl {
 template<>
 struct default_monoid<function_object_tag>
 {
-	using type = concepts::non_assignable_monoid<impl::compose_function_object, impl::is_abelian_function_object, impl::neutral_element_function_object>;
+	using type = concepts::non_assignable_monoid<model_function_object::compose, model_function_object::is_abelian, model_function_object::neutral_element>;
 };
 }
 }

@@ -9,9 +9,9 @@
 
 namespace cxxmath
 {
-namespace impl
+namespace model_int
 {
-struct is_abelian_ring_int
+struct is_abelian_ring
 {
 	static constexpr std::true_type apply( void )
 	{
@@ -19,7 +19,7 @@ struct is_abelian_ring_int
 	}
 };
 
-struct zero_int
+struct zero
 {
 	static constexpr int apply( void )
 	{
@@ -27,7 +27,7 @@ struct zero_int
 	}
 };
 
-struct one_int
+struct one
 {
 	static constexpr int apply( void )
 	{
@@ -35,7 +35,7 @@ struct one_int
 	}
 };
 
-struct add_assign_int : supports_tag_helper<int>
+struct add_assign : supports_tag_helper<int>
 {
 	static constexpr int &apply( int &a, int b )
 	{
@@ -43,7 +43,7 @@ struct add_assign_int : supports_tag_helper<int>
 	}
 };
 
-struct negate_in_place_int : supports_tag_helper<int>
+struct negate_in_place : supports_tag_helper<int>
 {
 	static constexpr int &apply( int &a )
 	{
@@ -51,7 +51,7 @@ struct negate_in_place_int : supports_tag_helper<int>
 	}
 };
 
-struct multiply_assign_int : supports_tag_helper<int>
+struct multiply_assign : supports_tag_helper<int>
 {
 	static constexpr int &apply( int &a, int b )
 	{
@@ -59,7 +59,7 @@ struct multiply_assign_int : supports_tag_helper<int>
 	}
 };
 
-struct equal_int : supports_tag_helper<int>
+struct equal : supports_tag_helper<int>
 {
 	static constexpr bool apply( int a, int b )
 	{
@@ -67,42 +67,44 @@ struct equal_int : supports_tag_helper<int>
 	}
 };
 
-struct less_int : supports_tag_helper<int>
+struct less : supports_tag_helper<int>
 {
 	static constexpr bool apply( int a, int b )
 	{
 		return a < b;
 	}
 };
+}
 
+namespace impl {
 template<>
 struct default_monoid<int>
 {
-	using type = concepts::assignable_monoid<multiply_assign_int, one_int, is_abelian_ring_int>;
+	using type = concepts::assignable_monoid<model_int::multiply_assign, model_int::one, model_int::is_abelian_ring>;
 };
 
 template<>
 struct default_group<int>
 {
-	using type = concepts::assignable_group<concepts::assignable_monoid<add_assign_int, zero_int, is_abelian_ring_int>, negate_in_place_int>;
+	using type = concepts::assignable_group<concepts::assignable_monoid<model_int::add_assign, model_int::zero, model_int::is_abelian_ring>, model_int::negate_in_place>;
 };
 
 template<>
 struct default_ring<int>
 {
-	using type = concepts::ring<default_group_t < int>, default_monoid_t<int>>;
+	using type = concepts::ring<default_group_t<int>, default_monoid_t<int>>;
 };
 
 template<>
 struct default_set<int>
 {
-	using type = concepts::set<equal_int>;
+	using type = concepts::set<model_int::equal>;
 };
 
 template<>
 struct default_total_order<int>
 {
-	using type = concepts::total_order<less_int>;
+	using type = concepts::total_order<model_int::less>;
 };
 }
 }

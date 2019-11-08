@@ -2,8 +2,8 @@
 // Created by jayz on 07.10.19.
 //
 
-#ifndef CXXMATH_MODELS_FREE_R_MODULE_HPP
-#define CXXMATH_MODELS_FREE_R_MODULE_HPP
+#ifndef CXXMATH_MODELS_FREE_R_ALGEBRA_HPP
+#define CXXMATH_MODELS_FREE_R_ALGEBRA_HPP
 
 #include "free_monoid.hpp"
 #include "product_monoid.hpp"
@@ -23,18 +23,24 @@ template<class Coefficient, class Symbol,
 		class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
 		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
 		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
-struct free_r_algebra_tag {};
+struct free_r_algebra_tag {
+	using coefficient = Coefficient;
+	using symbol = Symbol;
+	using coefficient_set = CoefficientSet;
+	using coefficient_ring = CoefficientRing;
+	using symbol_total_order = SymbolTotalOrder;
+};
 
 template<class> struct is_free_r_algebra_tag : std::false_type {};
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
 struct is_free_r_algebra_tag<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>>
 : std::true_type {};
-template<class Tag> static constexpr bool is_free_r_algebra_tag_v = is_free_r_algebra_tag<Tag>::value;
+CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE(is_free_r_algebra)
 
 namespace detail {
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
 struct free_r_algebra {
-	using dispatch_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
+	using cxxmath_dispatch_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 	
 	using coefficient = Coefficient;
 	using symbol = Symbol;
@@ -285,107 +291,66 @@ public:
 };
 }
 
-template<class Coefficient, class Symbol,
-		class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
-		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
-		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
-struct free_r_algebra_set {
-private:
-	using value_type = detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
-public:
-	using type = concepts::set<typename value_type::equal>;
-};
+namespace model_free_r_algebra {
+template<class FRATag> class free_r_algebra_concepts;
 
-template<class Coefficient, class Symbol,
-		class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
-		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
-		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
-struct free_r_algebra_monoid {
-private:
+template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
+class free_r_algebra_concepts<
+	free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>
+> {
 	using value_type = detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 public:
-	using type = concepts::assignable_monoid<typename value_type::multiply_assign, typename value_type::one, impl::false_implementation>;
-};
-
-template<class Coefficient, class Symbol,
-		class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
-		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
-		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
-struct free_r_algebra_group {
-private:
-	using value_type = detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
-public:
-	using type = concepts::assignable_group<
-			concepts::assignable_monoid<typename value_type::add_assign, typename value_type::zero, impl::true_implementation>,
-			typename value_type::negate_in_place
+	using set = concepts::set<typename value_type::equal>;
+	using monoid = concepts::assignable_monoid<
+		typename value_type::multiply_assign,
+		typename value_type::one,
+		impl::false_implementation
 	>;
-};
-
-template<class Coefficient, class Symbol,
-		class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
-		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
-		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
-struct free_r_algebra_ring {
-	using type = concepts::ring<
-			free_r_algebra_group<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>,
-			free_r_algebra_monoid<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>
+	using group = concepts::assignable_group<
+		concepts::assignable_monoid<
+			typename value_type::add_assign,
+			typename value_type::zero,
+			impl::true_implementation
+		>,
+		typename value_type::negate_in_place
 	>;
+	using ring = concepts::ring<group, monoid>;
+	using module = concepts::assignable_r_module<group, typename value_type::scalar_multiply_assign>;
+	using algebra = concepts::r_algebra<module, monoid>;
+	using make = typename value_type::make;
 };
-
-template<class Coefficient, class Symbol,
-		class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
-		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
-		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
-using free_r_module = concepts::assignable_r_module<
-	typename free_r_algebra_group<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type,
-	typename detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::scalar_multiply_assign
->;
-
-template<class Coefficient, class Symbol,
-		class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
-		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
-		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
-using free_r_algebra = concepts::r_algebra<
-	free_r_module<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>,
-	typename free_r_algebra_monoid<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type
->;
+}
 
 namespace impl {
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
-struct default_set<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
-	using type = typename free_r_algebra_set<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type;
+template<class FRATag> struct default_set<FRATag, std::enable_if_t<is_free_r_algebra_tag_v<FRATag>>> {
+	using type = typename model_free_r_algebra::free_r_algebra_concepts<FRATag>::set;
 };
 
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
-struct default_monoid<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
-using type = typename free_r_algebra_monoid<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type;
+template<class FRATag> struct default_monoid<FRATag, std::enable_if_t<is_free_r_algebra_tag_v<FRATag>>> {
+	using type = typename model_free_r_algebra::free_r_algebra_concepts<FRATag>::monoid;
 };
 
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
-struct default_group<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
-using type = typename free_r_algebra_group<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type;
+template<class FRATag> struct default_group<FRATag, std::enable_if_t<is_free_r_algebra_tag_v<FRATag>>> {
+	using type = typename model_free_r_algebra::free_r_algebra_concepts<FRATag>::group;
 };
 
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
-struct default_ring<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
-using type = typename free_r_algebra_ring<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::type;
+template<class FRATag> struct default_ring<FRATag, std::enable_if_t<is_free_r_algebra_tag_v<FRATag>>> {
+	using type = typename model_free_r_algebra::free_r_algebra_concepts<FRATag>::ring;
 };
 
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
-struct default_r_module<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
-using type = free_r_module<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
+template<class FRATag> struct default_r_module<FRATag, std::enable_if_t<is_free_r_algebra_tag_v<FRATag>>> {
+	using type = typename model_free_r_algebra::free_r_algebra_concepts<FRATag>::module;
 };
 
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
-struct default_r_algebra<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
-using type = free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
+template<class FRATag> struct default_r_algebra<FRATag, std::enable_if_t<is_free_r_algebra_tag_v<FRATag>>> {
+	using type = typename model_free_r_algebra::free_r_algebra_concepts<FRATag>::algebra;
 };
 
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
-struct make<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
+template<class FRATag>
+struct make<FRATag, std::enable_if_t<is_free_r_algebra_tag_v<FRATag>>> {
 	template<class ...Args>
 	static constexpr decltype(auto) apply( Args &&...args ) {
-		return ::cxxmath::detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>::make::apply(
+		return model_free_r_algebra::free_r_algebra::concepts<FRATag>::make::apply(
 			std::forward<Args>( args )...
 		);
 	}

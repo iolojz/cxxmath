@@ -2,10 +2,9 @@
 // Created by jayz on 08.10.19.
 //
 
-#ifndef CXXMATH_CONCEPTS_QUOTIENT_HPP
-#define CXXMATH_CONCEPTS_QUOTIENT_HPP
+#ifndef CXXMATH_MODELS_QUOTIENT_R_ALGEBRA_HPP
+#define CXXMATH_MODELS_QUOTIENT_R_ALGEBRA_HPP
 
-#include "core/make.hpp"
 #include "free_r_algebra.hpp"
 
 namespace cxxmath {
@@ -114,88 +113,76 @@ public:
 };
 }
 
-template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
-struct quotient_r_algebra_set {
-private:
+namespace model_quotient_r_algebra {
+template<class FRATag, class QSpec> class quotient_r_algebra_concepts {
 	using value_type = detail::quotient_r_algebra<FreeRAlgebraTag, RAlgebraQuotientSpec>;
 public:
-	using type = concepts::set<typename value_type::equal>;
+	using set =
 };
 
-template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
-struct quotient_r_algebra_monoid {
-private:
-	using value_type = detail::quotient_r_algebra<FreeRAlgebraTag, RAlgebraQuotientSpec>;
+template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
+class quotient_r_algebra_concepts<
+	quotient_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>,
+	QSpec
+> {
+	using value_type = detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 public:
-	using type = concepts::assignable_monoid<typename value_type::multiply_assign, typename value_type::one, typename RAlgebraQuotientSpec::multiplication_is_commutative>;
-};
-
-template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
-struct quotient_r_algebra_group {
-private:
-	using value_type = detail::quotient_r_algebra<FreeRAlgebraTag, RAlgebraQuotientSpec>;
-public:
-	using type = concepts::assignable_group<
-	concepts::assignable_monoid<typename value_type::add_assign, typename value_type::zero, impl::true_implementation>,
-	typename value_type::negate_in_place
+	using set = concepts::set<typename value_type::equal>;
+	using monoid = concepts::assignable_monoid<
+		typename value_type::multiply_assign,
+		typename value_type::one,
+		impl::false_implementation
 	>;
-};
-
-template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
-struct quotient_r_algebra_ring {
-	using type = concepts::ring<
-	typename quotient_r_algebra_group<FreeRAlgebraTag, RAlgebraQuotientSpec>::type,
-	typename quotient_r_algebra_monoid<FreeRAlgebraTag, RAlgebraQuotientSpec>::type
+	using group = concepts::assignable_group<
+		concepts::assignable_monoid<
+			typename value_type::add_assign,
+			typename value_type::zero,
+			impl::true_implementation
+		>,
+		typename value_type::negate_in_place
 	>;
+	using ring = concepts::ring<group, monoid>;
+	using module = concepts::assignable_r_module<group, typename value_type::scalar_multiply_assign>;
+	using algebra = concepts::r_algebra<module, monoid>;
+	using make = typename value_type::make;
 };
-
-template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
-using quotient_r_module = concepts::assignable_r_module<
-typename quotient_r_algebra_group<FreeRAlgebraTag, RAlgebraQuotientSpec>::type,
-typename detail::quotient_r_algebra<FreeRAlgebraTag, RAlgebraQuotientSpec>::scalar_multiply_assign
->;
-
-template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
-using quotient_r_algebra = concepts::r_algebra<
-typename quotient_r_module<FreeRAlgebraTag, RAlgebraQuotientSpec>::type,
-typename quotient_r_algebra_monoid<FreeRAlgebraTag, RAlgebraQuotientSpec>::type
->;
+}
 
 namespace impl {
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct default_set<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
-	using type = typename quotient_r_algebra_set<FreeRAlgebraTag, RAlgebraQuotientSpec>::type;
+	using type = typename quotient_r_algebra_concepts<FreeRAlgebraTag, RAlgebraQuotientSpec>::set;
 };
 
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct default_monoid<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
-	using type = typename quotient_r_algebra_monoid<FreeRAlgebraTag, RAlgebraQuotientSpec>::type;
+	using type = typename quotient_r_algebra_concepts<FreeRAlgebraTag, RAlgebraQuotientSpec>::monoid;
 };
 
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct default_group<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
-	using type = typename quotient_r_algebra_group<FreeRAlgebraTag, RAlgebraQuotientSpec>::type;
+	using type = typename quotient_r_algebra_concepts<FreeRAlgebraTag, RAlgebraQuotientSpec>::group;
 };
 
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct default_ring<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
-	using type = typename quotient_r_algebra_ring<FreeRAlgebraTag, RAlgebraQuotientSpec>::type;
+	using type = typename quotient_r_algebra_concepts<FreeRAlgebraTag, RAlgebraQuotientSpec>::ring;
 };
 
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct default_r_module<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
-	using type = typename quotient_r_module<FreeRAlgebraTag, RAlgebraQuotientSpec>::type;
+	using type = typename quotient_r_algebra_concepts<FreeRAlgebraTag, RAlgebraQuotientSpec>::module;
 };
 
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct default_r_algebra<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
-	using type = typename quotient_r_algebra<FreeRAlgebraTag, RAlgebraQuotientSpec>::type;
+	using type = typename quotient_r_algebra_concepts<FreeRAlgebraTag, RAlgebraQuotientSpec>::algebra;
 };
 
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct make<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
 	template<class ...Args> static constexpr decltype(auto) apply( Args &&...args ) {
-		return ::cxxmath::detail::quotient_r_algebra<FreeRAlgebraTag, RAlgebraQuotientSpec>::make::apply(
+		return quotient_r_algebra_concepts<FreeRAlgebraTag, RAlgebraQuotientSpec>::make::apply(
 			std::forward<Args>( args )...
 		);
 	}

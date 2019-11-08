@@ -11,7 +11,7 @@
 
 namespace cxxmath
 {
-namespace impl
+namespace model_std_get
 {
 struct std_get_0
 {
@@ -42,7 +42,9 @@ struct std_get_1
 		return std::get<1>( std::forward<Arg>( arg ));
 	}
 };
+}
 
+namespace impl {
 template<>
 struct make_product<concepts::product<std_get_0, std_get_1>>
 {

@@ -9,15 +9,6 @@
 
 namespace cxxmath {
 namespace detail {
-template<class FRATag> struct total_symbol_order_for_free_r_algebra_tag;
-
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
-struct total_symbol_order_for_free_r_algebra_tag<
-	free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>
-> {
-	using type = SymbolTotalOrder;
-};
-
 template<class TotalOrder>
 struct less_from_total_order
 {
@@ -30,11 +21,13 @@ struct less_from_total_order
 }
 
 template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spec {
+	using set = model_free_r_algebra::free_r_algebra_concepts<tag_of_t<FRA>>::set;
+	using algebra = model_free_r_algebra::free_r_algebra_concepts<tag_of_t<FRA>>::algebra;
 	using multiplication_is_commutative = impl::false_implementation;
 	
 	struct negate_in_place : commutes_with_quotient_map_helper<true> {
 		template<class FRA> static constexpr decltype(auto) apply( FRA &&fra ) {
-			return default_r_algebra_t<tag_of_t<FRA>>::negate_in_place( std::forward<FRA>( fra ) );
+			return algebra::negate_in_place( std::forward<FRA>( fra ) );
 		}
 	};
 	
@@ -43,7 +36,7 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 		template<class Scalar, class FRA>
 		static constexpr decltype(auto) apply( Scalar &&s, FRA &&fra )
 		{
-			return default_r_algebra_t< tag_of_t < FRA >>::scalar_multiply_assign(
+			return algebra::scalar_multiply_assign(
 				std::forward<Scalar>( s ), std::forward<FRA>( fra )
 			);
 		}
@@ -53,7 +46,7 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 		template<class FRA1, class FRA2>
 		static constexpr decltype(auto) apply( FRA1 &fra1, FRA2 &&fra2 )
 		{
-			default_r_algebra_t< tag_of_t < FRA1 >>::add_assign( fra1, std::forward<FRA2>( fra2 ) );
+			algebra::add_assign( fra1, std::forward<FRA2>( fra2 ) );
 			return quotient_map_in_place( fra1 );
 		}
 	};
@@ -63,15 +56,15 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 		template<class FRA1, class FRA2>
 		static constexpr decltype( auto ) apply( FRA1 &fra1, FRA2 &&fra2 )
 		{
-			default_r_algebra_t<tag_of_t<FRA1>>::multiply_assign( fra1, std::forward<FRA2>( fra2 ));
+			algebra::multiply_assign( fra1, std::forward<FRA2>( fra2 ));
 			return quotient_map_in_place::apply( fra1 );
 		}
 	};
 	
 	class quotient_map_in_place {
 		template<class FRATag, class Monomial>
-		static constexpr decltype(default_r_algebra_t<FRATag>::zero())	canonicalize_monomial( Monomial &&monomial ) {
-			using total_symbol_order = typename detail::total_symbol_order_for_free_r_algebra_tag<FRATag>::type;
+		static constexpr decltype(default_r_algebra_t<FRATag>::zero())canonicalize_monomial( Monomial &&monomial ) {
+			using total_symbol_order = typename FRATag::total_symbol_order;
 			using less_symbols = detail::less_from_total_order<total_symbol_order>;
 			
 			auto symbols = std::move( std_get_product::first( monomial ) );
@@ -99,11 +92,11 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 				symbols, std::move( permuted_coefficient )
 			) );
 			
-			auto one_ = CoefficientRing::one();
-			auto two = one_ + one_;
+			auto one = CoefficientRing::one();
+			auto two = CoefficientRing::add_assign(one_ + one_);
 			auto shortened_coefficient = two * std::move( std_get_product::second( monomial ) ) * std::move( clifford_coefficient );
 			symbols.erase( last_ordered, last_ordered + 2 );
-			default_r_algebra_t<FRATag>::add_assign( canonicalized_polynomial, canonicalize_monomial<FRATag>( std::make_pair(
+			algebra::add_assign( canonicalized_polynomial, canonicalize_monomial<FRATag>( std::make_pair(
 				std::move( symbols ), std::move( shortened_coefficient )
 			) ) );
 			
@@ -113,7 +106,7 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 		template<class FRA> static constexpr FRA &apply( FRA &fra ) {
 			auto canonicalized = default_r_algebra_t<tag_of_t<FRA>>::zero();
 			for( auto &&monomial : fra.monomials())
-				default_r_algebra_t<tag_of_t<FRA>>::add_assign( canonicalized, canonicalize_monomial<tag_of_t<FRA>>( std::move( monomial ) ) );
+				algebra::add_assign( canonicalized, canonicalize_monomial<tag_of_t<FRA>>( std::move( monomial ) ) );
 			fra = std::move( canonicalized );
 			return fra;
 		}
@@ -122,7 +115,7 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 	struct equal {
 		template<class FRA1, class FRA2>
 		static constexpr decltype( auto ) apply( FRA1 &&fra1, FRA2 &&fra2 ) {
-			return ::cxxmath::equal( std::forward<FRA1>( fra1 ), std::forward<FRA2>( fra2 ) );
+			return set::equal( std::forward<FRA1>( fra1 ), std::forward<FRA2>( fra2 ) );
 		}
 	};
 };

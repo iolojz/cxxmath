@@ -7,7 +7,7 @@
 
 namespace cxxmath
 {
-namespace impl
+namespace model_product_set
 {
 namespace detail
 {
@@ -21,11 +21,11 @@ struct choose_set<DispatchTag, void>
 {
 	using type = default_set_t<DispatchTag>;
 };
-template<class DispatchTag, class Set> using choose_set_t = typename choose_set<DispatchTag, Set>::type;
+CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE( choose_set )
 }
 
 template<class Product, class FirstSet = void, class SecondSet = void>
-struct equal_product
+struct equal
 {
 	template<class DispatchTag>
 	static constexpr bool supports_tag( void )
@@ -40,8 +40,8 @@ struct equal_product
 		using second1_tag = tag_of_t<decltype( Product::second( std::forward<Product1>( p1 )))>;
 		using second2_tag = tag_of_t<decltype( Product::second( std::forward<Product2>( p2 )))>;
 		
-		static_assert( std::is_same_v < first1_tag, first2_tag > , "Cannot compare objects of different tags." );
-		static_assert( std::is_same_v < second1_tag, second2_tag > , "Cannot compare objects of different tags." );
+		static_assert( std::is_same_v<first1_tag, first2_tag>, "Cannot compare objects of different tags." );
+		static_assert( std::is_same_v<second1_tag, second2_tag>, "Cannot compare objects of different tags." );
 		
 		using first_set = detail::choose_set_t<first1_tag, FirstSet>;
 		using second_set = detail::choose_set_t<second1_tag, SecondSet>;
@@ -54,14 +54,14 @@ struct equal_product
 };
 }
 
-template<class Product> using product_set = concepts::set<impl::equal_product<Product>>;
+template<class Product> using product_set = concepts::set<model_product_set::equal<Product>>;
 
 namespace impl
 {
 template<class DispatchTag>
-struct default_set<DispatchTag, std::enable_if_t < has_default_product < DispatchTag>>>
+struct default_set<DispatchTag, std::enable_if_t<has_default_product<DispatchTag>>>
 {
-using type = product_set<default_product_t < DispatchTag>>;
+	using type = product_set<default_product_t<DispatchTag>>;
 };
 }
 }
