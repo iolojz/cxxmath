@@ -87,11 +87,11 @@ struct make_product<model_std_pair::product<UniqueFirstTag, UniqueSecondTag>>
 			if constexpr( std::is_void_v<UniqueSecondTag> )
 				return std::make_pair( std::forward<Arg1>( arg1 ), std::forward<Arg2>( arg2 ));
 			else
-				return std::make_pair( std::forward<Arg1>( arg1 ), make<UniqueSecondTag>( std::forward<Arg2>( arg2 ) ) );
+				return std::make_pair( std::forward<Arg1>( arg1 ), make<UniqueSecondTag>::apply( std::forward<Arg2>( arg2 ) ) );
 		} else if constexpr( std::is_void_v<UniqueSecondTag> )
-			return std::make_pair( make<UniqueSecondTag>( std::forward<Arg1>( arg1 ) ), std::forward<Arg2>( arg2 ) );
+			return std::make_pair( make<UniqueSecondTag>::apply( std::forward<Arg1>( arg1 ) ), std::forward<Arg2>( arg2 ) );
 		else
-			return std::make_pair( make<UniqueSecondTag>( std::forward<Arg1>( arg1 ) ), make<UniqueSecondTag>( std::forward<Arg2>( arg2 ) ) );
+			return std::make_pair( make<UniqueSecondTag>::apply( std::forward<Arg1>( arg1 ) ), make<UniqueSecondTag>::apply( std::forward<Arg2>( arg2 ) ) );
 	}
 };
 }

@@ -17,6 +17,7 @@ struct r_algebra
 	using r_module_ = RModule;
 	using monoid_ = Monoid;
 	
+	static constexpr auto is_abelian_r_algebra = monoid_::is_abelian_monoid;
 	static constexpr auto zero = r_module_::zero;
 	static constexpr auto add = r_module_::add;
 	static constexpr auto add_assign = r_module_::add_assign;

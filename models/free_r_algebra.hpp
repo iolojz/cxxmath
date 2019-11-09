@@ -195,22 +195,25 @@ public:
 	};
 	
 	class make {
-		template<class MonoidElement, class C>
-		static constexpr free_r_algebra make_element( MonoidElement &&m, C &&c ) {
-			monomial_container monomial_map = { { std::forward<MonoidElement>( m ), std::forward<C>( c ) } };
+		template<class SymbolRange, class C>
+		static constexpr free_r_algebra make_element( SymbolRange &&sr, C &&c ) {
+			if( c == coefficient_ring::zero() )
+				return zero::apply();
+			
+			monomial_container monomial_map = { { std::forward<SymbolRange>( sr ), std::forward<C>( c ) } };
 			return { std::move( monomial_map ) };
 		}
 		
-		template<class Product, class FRA>
+		template<class ProductConcept, class FRA>
 		static constexpr void add_assign_( FRA &fra ) {}
 		
-		template<class Product, class FRA1, class ProductElement, class ...Tail>
-		static constexpr void multiply_assign_( FRA1 &fra1, ProductElement &&p, Tail &&...tail ) {
+		template<class ProductConcept, class FRA1, class ProductElement, class ...Tail>
+		static constexpr void add_assign_( FRA1 &fra1, ProductElement &&p, Tail &&...tail ) {
 			auto next_summand = make_element(
-				Product::first( std::forward<ProductElement>( p ) ),
-				Product::second( std::forward<ProductElement>( p ) )
+				ProductConcept::first( std::forward<ProductElement>( p ) ),
+				ProductConcept::second( std::forward<ProductElement>( p ) )
 			);
-			add_assign_( add_assign::apply( fra1, std::move( next_summand ) ), std::forward<Tail>( tail )... );
+			add_assign_<ProductConcept>( add_assign::apply( fra1, std::move( next_summand ) ), std::forward<Tail>( tail )... );
 		}
 		
 		template<class C, class ...Symbols>
@@ -242,14 +245,14 @@ public:
 			return free_r_algebra{ std::forward<FreeRAlgebra>( fra ) };
 		}
 		
-		template<class Product = std_get_product, class Product1, class ...Products,
-				class = std::enable_if_t<models_concept_v<Product1, Product>>>
+		template<class ProductConcept = std_get_product, class Product1, class ...Products,
+				class = std::enable_if_t<(models_concept_v<tag_of_t<Product1>, ProductConcept> && ... && models_concept_v<tag_of_t<Products>, ProductConcept>)>>
 		static decltype(auto) apply( Product1 &&p1, Products &&...products ) {
 			auto result = make_element(
-				Product::first( std::forward<Product1>( p1 ) ),
-				Product::second( std::forward<Product1>( p1 ) )
+				ProductConcept::first( std::forward<Product1>( p1 ) ),
+				ProductConcept::second( std::forward<Product1>( p1 ) )
 			);
-			add_assign_<Product>( result, std::forward<Products>( products )... );
+			add_assign_<ProductConcept>( result, std::forward<Products>( products )... );
 			return result;
 		}
 	};

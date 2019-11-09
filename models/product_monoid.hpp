@@ -86,7 +86,7 @@ public:
 	template<class T = void>
 	static constexpr auto apply( void )
 	{
-		return make_product<Product>( FirstMonoid::neutral_element(), SecondMonoid::neutral_element());
+		return make_product<Product>( neutral_first(), neutral_second() );
 	}
 };
 
@@ -145,7 +145,7 @@ struct compose_assign
 		using second_monoid = detail::choose_monoid_t<second1_tag, SecondMonoid>;
 		
 		auto &p11 = Product::first( p1 );
-		auto &p12 = Product::first( p1 );
+		auto &p12 = Product::second( p1 );
 		
 		p11 = first_monoid::compose_assign( Product::first( std::forward<Product2>( p1 )),
 									  Product::first( std::forward<Product2>( p2 )));

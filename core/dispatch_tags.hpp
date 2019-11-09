@@ -49,9 +49,9 @@ struct tag_of
 template<class Tag1, class Tag2, class = void>
 struct common_tag {};
 template<class Tag1, class Tag2>
-struct common_tag<Tag1, Tag2, std::enable_if_t<detail::has_member_type<std::common_type<Tag1, Tag2>>::value>>
+struct common_tag<Tag1, Tag2, std::enable_if_t<std::is_same_v<Tag1, Tag2>>>
 {
-	using type = std::common_type_t<Tag1, Tag2>;
+	using type = Tag1;
 };
 }
 
