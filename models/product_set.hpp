@@ -59,7 +59,7 @@ template<class Product> using product_set = concepts::set<model_product_set::equ
 namespace impl
 {
 template<class DispatchTag>
-struct default_set<DispatchTag, std::enable_if_t<has_default_product<DispatchTag>>>
+struct default_set<DispatchTag, std::enable_if_t<has_default_product_v<DispatchTag>>>
 {
 	using type = product_set<default_product_t<DispatchTag>>;
 };

@@ -9,7 +9,7 @@
 
 namespace cxxmath {
 template<class Symbol, class Allocator = std::allocator<Symbol>>
-using free_monoid = typename vector_monoid<Symbol, Allocator>::type;
+using free_monoid = typename model_std_vector::vector_monoid<Symbol, Allocator>::type;
 }
 
 #endif //CXXMATH_MODELS_FREE_MONOID_HPP

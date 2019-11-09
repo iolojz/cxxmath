@@ -6,7 +6,11 @@
 #define CXXMATH_MODELS_FUNCTION_OBJECT_HPP
 
 #include "concepts/monoid_fwd.hpp"
+
 #include "core/concepts.hpp"
+#include "core/dispatch_tags.hpp"
+
+#include "helpers/boolean_v.hpp"
 
 namespace cxxmath
 {
@@ -62,7 +66,7 @@ struct unsupported_implementation
 	template<class ...Args, class False = void>
 	static constexpr void apply( Args &&... )
 	{
-		static_assert( detail::always_false_v<False>, "Unsupported implementation." );
+		static_assert( false_v<False>, "Unsupported implementation." );
 	}
 };
 
@@ -119,7 +123,7 @@ struct compose : supports_tag_helper<function_object_tag>
 		using i1 = typename F1::implementation;
 		using i2 = typename F2::implementation;
 		
-		return function_object_v<detail::composed_function_object<i1, i2>>;
+		return function_object_v<composed_function_object<i1, i2>>;
 	}
 };
 

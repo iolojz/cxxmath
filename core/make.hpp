@@ -9,10 +9,10 @@
 
 namespace cxxmath {
 namespace impl {
-template<class Tag> struct make : unsupported_implementation {};
+template<class Tag, class = void> struct make : unsupported_implementation {};
 }
 
-template<class Tag> static constexpr auto make = function_object_v<impl::make<Tag>>;
+template<class Tag, class Spec = void> static constexpr auto make = function_object_v<impl::make<Tag, Spec>>;
 }
 
 #endif //CXXMATH_CORE_MAKE_HPP

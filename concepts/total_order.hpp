@@ -10,13 +10,10 @@
 
 namespace cxxmath
 {
-namespace impl
-{
 namespace concepts {
 template<class Less>
 class total_order
 {
-	template<class Less>
 	struct less_equal_impl : forward_supported_tags<Less>
 	{
 		template<class Arg1, class Arg2>
@@ -26,7 +23,6 @@ class total_order
 		}
 	};
 	
-	template<class Less>
 	struct equal_impl : forward_supported_tags<Less>
 	{
 		template<class Arg1, class Arg2>
@@ -36,7 +32,6 @@ class total_order
 		}
 	};
 	
-	template<class Less>
 	struct greater_equal_impl : forward_supported_tags<Less>
 	{
 		template<class Arg1, class Arg2>
@@ -46,7 +41,6 @@ class total_order
 		}
 	};
 	
-	template<class Less>
 	struct greater_impl : forward_supported_tags<Less>
 	{
 		template<class Arg1, class Arg2>
@@ -58,10 +52,10 @@ class total_order
 public:
 	static constexpr auto less = function_object_v<Less>;
 	
-	static constexpr auto less_equal = function_object_v<less_equal_impl<Less>>;
-	static constexpr auto equal = function_object_v<equal_impl<Less>>;
-	static constexpr auto greater_equal = function_object_v<greater_equal_impl<Less>>;
-	static constexpr auto greater = function_object_v<greater_impl<Less>>;
+	static constexpr auto less_equal = function_object_v<less_equal_impl>;
+	static constexpr auto equal = function_object_v<equal_impl>;
+	static constexpr auto greater_equal = function_object_v<greater_equal_impl>;
+	static constexpr auto greater = function_object_v<greater_impl>;
 	
 	static constexpr auto not_equal = compose( not_, equal );
 };
@@ -84,12 +78,12 @@ CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( greater, total_order )
 
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( greater_equal, total_order )
 
-template<class Less> using totally_ordered_set = concepts::set<concepts::detail::equal_total_order<Less>>;
+template<class Less> using totally_ordered_set = concepts::set<typename concepts::total_order<Less>::equal::implementation>;
 
 namespace impl
 {
 template<class DispatchTag>
-struct default_set<DispatchTag, std::enable_if_t<has_default_total_order<DispatchTag>>>
+struct default_set<DispatchTag, std::enable_if_t<has_default_total_order_v<DispatchTag>>>
 {
 	using type = totally_ordered_set<default_total_order_t<DispatchTag>>;
 };

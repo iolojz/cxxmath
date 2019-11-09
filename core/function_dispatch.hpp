@@ -9,16 +9,6 @@
 
 namespace cxxmath
 {
-namespace detail
-{
-template<class T>
-struct always_false
-{
-	static constexpr bool value = false;
-};
-DEFINE_STATIC_CONSTEXPR_MEMBER_TEMPLATE(always_false)
-}
-
 #ifdef CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION
 #error "CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION is already defined."
 #endif

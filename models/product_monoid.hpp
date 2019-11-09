@@ -86,7 +86,7 @@ public:
 	template<class T = void>
 	static constexpr auto apply( void )
 	{
-		return make_product<Product>::apply( FirstMonoid::neutral_element(), SecondMonoid::neutral_element());
+		return make_product<Product>( FirstMonoid::neutral_element(), SecondMonoid::neutral_element());
 	}
 };
 
@@ -112,10 +112,12 @@ struct compose
 		using first_monoid = detail::choose_monoid_t<first1_tag, FirstMonoid>;
 		using second_monoid = detail::choose_monoid_t<second1_tag, SecondMonoid>;
 		
-		return make_product<Product>::apply( first_monoid::compose( Product::first( std::forward<Product1>( p1 )),
-																	Product::first( std::forward<Product2>( p2 ))),
-											 second_monoid::compose( Product::second( std::forward<Product1>( p1 )),
-																	 Product::second( std::forward<Product2>( p2 ))));
+		return make_product<Product>(
+			first_monoid::compose( Product::first( std::forward<Product1>( p1 )),
+				Product::first( std::forward<Product2>( p2 ))),
+			second_monoid::compose( Product::second( std::forward<Product1>( p1 )),
+				Product::second( std::forward<Product2>( p2 )))
+		);
 	}
 };
 
@@ -156,15 +158,15 @@ struct compose_assign
 
 template<class Product, class FirstMonoid = void, class SecondMonoid = void> using product_monoid = concepts::monoid<
 	model_product_monoid::compose_assign<Product, FirstMonoid, SecondMonoid>,
-	model_product_monoid::compose_product<Product, FirstMonoid, SecondMonoid>,
-	model_product_monoid::neutral_element_product<Product, FirstMonoid, SecondMonoid>,
-	model_product_monoid::is_abelian_monoid_product<Product, FirstMonoid, SecondMonoid>
+	model_product_monoid::compose<Product, FirstMonoid, SecondMonoid>,
+	model_product_monoid::neutral_element<Product, FirstMonoid, SecondMonoid>,
+	model_product_monoid::is_abelian_monoid<Product, FirstMonoid, SecondMonoid>
 >;
 
 namespace impl
 {
 template<class DispatchTag>
-struct default_monoid<DispatchTag, std::enable_if_t<has_default_product<DispatchTag>>>
+struct default_monoid<DispatchTag, std::enable_if_t<has_default_product_v<DispatchTag>>>
 {
 using type = product_monoid<default_product_t<DispatchTag>>;
 };

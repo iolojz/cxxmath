@@ -44,9 +44,11 @@ struct std_get_1
 };
 }
 
+using std_get_product = concepts::product<model_std_get::std_get_0, model_std_get::std_get_1>;
+
 namespace impl {
 template<>
-struct make_product<concepts::product<std_get_0, std_get_1>>
+struct make_product<std_get_product>
 {
 	template<class Tag>
 	static constexpr bool supports_tag( void )
@@ -61,8 +63,6 @@ struct make_product<concepts::product<std_get_0, std_get_1>>
 	}
 };
 }
-
-using std_get_product = concepts::product<impl::std_get_0, impl::std_get_1>;
 }
 
 #endif //CXXMATH_MODELS_STD_GET_HPP

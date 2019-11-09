@@ -20,7 +20,6 @@
 #include "concepts/set.hpp"
 #include "concepts/total_order.hpp"
 
-#include "models/abstract_index_notation.hpp"
 #include "models/bool.hpp"
 #include "models/clifford_algebra.hpp"
 #include "models/free_monoid.hpp"

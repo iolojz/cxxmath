@@ -28,7 +28,7 @@ struct tag_of;
 template<class T>
 struct tag_of<T, true>
 {
-	using type = typename T::dispatch_tag;
+	using type = typename T::cxxmath_dispatch_tag;
 };
 
 template<class T>
@@ -60,11 +60,11 @@ struct tag_of
 {
 	using type = typename impl::tag_of<std::decay_t<T>>::type;
 };
-DEFINE_TYPE_ALIAS_TEMPLATE(tag_of)
+CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE(tag_of)
 
 template<class ...Tags>
 struct common_tag;
-DEFINE_TYPE_ALIAS_TEMPLATE(common_tag)
+CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE(common_tag)
 
 template<class Tag>
 struct common_tag<Tag>
@@ -78,7 +78,7 @@ template<class Tag1, class Tag2, class TagTuple, class = void> struct common_tag
 template<class Tag1, class Tag2, class ...Tags>
 struct common_tag<Tag1, Tag2, std::tuple<Tags...>, std::enable_if_t<has_member_type<impl::common_tag<Tag1, Tag2>>::value>>
 {
-	using type = ::cxxmath::common_tag_t<typename common_tag<Tag1, Tag2>::type, Tags...>;
+	using type = ::cxxmath::common_tag_t<typename impl::common_tag<Tag1, Tag2>::type, Tags...>;
 };
 }
 
@@ -88,7 +88,7 @@ struct common_tag<Tag1, Tag2, Tags...> : detail::common_tag<Tag1, Tag2, std::tup
 template<class ...Args> struct have_common_tag {
 	static constexpr bool value = detail::has_member_type<common_tag<tag_of_t<Args>...>>::value;
 };
-DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(have_common_tag)
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(have_common_tag)
 
 template<class DispatchTag>
 struct supports_tag_helper

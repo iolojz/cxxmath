@@ -10,8 +10,8 @@
 #include "std_get.hpp"
 #include "function_object.hpp"
 
-#include "core/is_range.hpp"
-#include "core/erase_if.hpp"
+#include "helpers/is_range.hpp"
+#include "helpers/erase_if.hpp"
 
 #include "concepts/r_module.hpp"
 
@@ -35,7 +35,7 @@ template<class> struct is_free_r_algebra_tag : std::false_type {};
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
 struct is_free_r_algebra_tag<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>>
 : std::true_type {};
-CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE(is_free_r_algebra)
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_free_r_algebra_tag)
 
 namespace detail {
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
@@ -113,7 +113,7 @@ public:
 		}
 	};
 	
-	struct negate_in_place : supports_tag_helper<dispatch_tag> {
+	struct negate_in_place : supports_tag_helper<cxxmath_dispatch_tag> {
 		template<class FRA>
 		static FRA &apply( FRA &fra ) {
 			auto &monomial_map = fra.monomials();
@@ -123,7 +123,7 @@ public:
 		}
 	};
 	
-	struct scalar_multiply_assign : supports_tag_helper<dispatch_tag> {
+	struct scalar_multiply_assign : supports_tag_helper<cxxmath_dispatch_tag> {
 		template<class C, class FRA>
 		static FRA &apply( C &&c, FRA &fra ) {
 			auto &monomial_map = fra.monomials();
@@ -134,7 +134,7 @@ public:
 		}
 	};
 	
-	struct add_assign : supports_tag_helper<dispatch_tag> {
+	struct add_assign : supports_tag_helper<cxxmath_dispatch_tag> {
 		template<class FRA1, class FRA2>
 		static FRA1 &apply( FRA1 &fra1, FRA2 &&fra2 ) {
 			auto &monomial_map1 = fra1.monomials();
@@ -162,7 +162,7 @@ public:
 		}
 	};
 	
-	struct multiply_assign : supports_tag_helper<dispatch_tag> {
+	struct multiply_assign : supports_tag_helper<cxxmath_dispatch_tag> {
 		template<class FRA1, class FRA2>
 		static FRA1 &apply( FRA1 &fra1, FRA2 &&fra2 ) {
 			// FIXME: do not take cartesian product for simple multiplications!
@@ -237,7 +237,7 @@ public:
 				return make_from_coefficient_and_symbols( std::forward<C>( c ), std::forward<Args>( args )... );
 		}
 		
-		template<class FreeRAlgebra, CXXMATH_ENABLE_IF_TAG_IS(FreeRAlgebra, dispatch_tag)>
+		template<class FreeRAlgebra, CXXMATH_ENABLE_IF_TAG_IS(FreeRAlgebra, cxxmath_dispatch_tag)>
 		static decltype(auto) apply( FreeRAlgebra &&fra ) {
 			return free_r_algebra{ std::forward<FreeRAlgebra>( fra ) };
 		}
@@ -260,7 +260,7 @@ public:
 		}
 	};
 	
-	struct equal : supports_tag_helper<dispatch_tag> {
+	struct equal : supports_tag_helper<cxxmath_dispatch_tag> {
 		static bool apply( const free_r_algebra &fra1, const free_r_algebra &fra2 )
 		{
 			const auto &monomial_map1 = fra1.monomials();
@@ -350,7 +350,7 @@ template<class FRATag>
 struct make<FRATag, std::enable_if_t<is_free_r_algebra_tag_v<FRATag>>> {
 	template<class ...Args>
 	static constexpr decltype(auto) apply( Args &&...args ) {
-		return model_free_r_algebra::free_r_algebra::concepts<FRATag>::make::apply(
+		return model_free_r_algebra::free_r_algebra_concepts<FRATag>::make::apply(
 			std::forward<Args>( args )...
 		);
 	}
