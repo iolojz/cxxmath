@@ -23,7 +23,7 @@ struct quotient_r_algebra;
 
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder, class RAlgebraQuotientSpec>
 struct quotient_r_algebra<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>, RAlgebraQuotientSpec> {
-	using r_algebra_object = detail::free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
+	using r_algebra_object = free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 	using r_algebra_tag = tag_of_t<r_algebra_object>;
 	using r_algebra = typename model_free_r_algebra::free_r_algebra_concepts<r_algebra_tag>::algebra;
 	using cxxmath_dispatch_tag = quotient_r_algebra_tag<tag_of_t<r_algebra_object>, RAlgebraQuotientSpec>;

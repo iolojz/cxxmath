@@ -80,7 +80,7 @@ struct coefficient_decomposer
 		return apply( qra.representative() );
 	}
 	
-	template<class FRA, class = std::enable_if_t<is_free_r_algebra_tag_v<tag_of_t<FRA>>>>
+	template<class FRA, class = std::enable_if_t<is_free_r_algebra_tag_v<tag_of_t<FRA>>>, class = void>
 	static auto apply( const FRA &fra )
 	{
 		using coefficient = decltype( fra.monomials().begin()->second );
@@ -119,7 +119,7 @@ struct select_type_with_tag<Tag, Type1, Alternatives...>
 	using type = std::conditional_t<std::is_same_v<Tag, tag_of_t<Type1>>, Type1, typename select_type_with_tag<Tag, Alternatives...>::type>;
 };
 
-template<class CoefficientTag, class CoefficientRing>
+template<class CoefficientTag>
 struct coefficient_composer
 {
 	template<class C, CXXMATH_ENABLE_IF_TAG_IS( C, tag_of_t<CoefficientTag> ) >
@@ -210,9 +210,9 @@ public:
 	{
 		auto symbols_begin = std::find_if( std::begin( parts ), std::end( parts ), is_symbol );
 		
-		auto coefficient = CoefficientRing::zero();
+		auto coefficient = Ring::zero();
 		for( auto cit = std::begin( parts ); cit != symbols_begin; ++cit ) {
-			coefficient *= extract_coefficient( *cit );
+			Ring::multiply_assign( coefficient, extract_coefficient( *cit ) );
 		}
 		
 		auto symbol_range = boost::make_iterator_range( std::make_move_iterator( symbols_begin ),
