@@ -344,17 +344,21 @@ class abstract_index_quotient_spec
 			auto s1_it = current.first;
 			auto s2_it = current.second;
 			
-			auto middle = ( s1_it == s2_it ) ? boost::make_iterator_range( s1_it, s1_it ) : boost::make_iterator_range(
-					std::next( s1_it ), s2_it );
+			std::optional<FRA> contracted;
+			if( s1_it == s2_it ) {
+				contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *s1_it, std::move( common_indices ) );
+			} else {
+				auto middle = boost::make_iterator_range( std::next( s1_it ), s2_it );
+				contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *s1_it, std::move( middle ), *s2_it, std::move( common_indices ) );
+			}
 			
-			auto contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *s1_it, std::move( middle ), *s2_it, std::move( common_indices ) );
 			if( contracted == std::nullopt )
 				continue;
 			
 			auto head = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
 											 boost::make_iterator_range( std::begin( symbols ), s1_it ));
 			auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
-											 boost::make_iterator_range( ++s2_it, std::make_move_iterator( std::end( symbols ) ) ) );
+											 boost::make_iterator_range( ++s2_it, std::end( symbols ) ) );
 			
 			head *= std::move( *contracted );
 			head *= std::move( tail );

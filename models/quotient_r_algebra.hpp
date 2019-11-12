@@ -18,7 +18,6 @@ template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct is_quotient_r_algebra_tag<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> : std::true_type {};
 CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_quotient_r_algebra_tag)
 
-namespace detail {
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct quotient_r_algebra;
 
@@ -116,11 +115,10 @@ public:
 		}
 	};
 };
-}
 
 namespace model_quotient_r_algebra {
 template<class FRATag, class QSpec> class quotient_r_algebra_concepts {
-	using value_type = detail::quotient_r_algebra<FRATag, QSpec>;
+	using value_type = quotient_r_algebra<FRATag, QSpec>;
 public:
 	using set = concepts::set<typename value_type::equal>;
 	using monoid = concepts::assignable_monoid<
