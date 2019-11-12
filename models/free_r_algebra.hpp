@@ -78,9 +78,11 @@ private:
 		} );
 	}
 	
+public:
 	// FIXME: Should we enable runtime switching of this type?
 	using monomial_container = boost::container::flat_map<std::vector<Symbol>, Coefficient, less_variable_ranges>;
 	//using monomial_container = std::map<std::vector<variable>, Coefficient, less_variable_ranges>;
+private:
 	monomial_container monomial_map;
 	
 	free_r_algebra( monomial_container &&mm )
@@ -253,6 +255,17 @@ public:
 				ProductConcept::second( std::forward<Product1>( p1 ) )
 			);
 			add_assign_<ProductConcept>( result, std::forward<Products>( products )... );
+			return result;
+		}
+		
+		template<class InputIterator, class = typename std::iterator_traits<InputIterator>::iterator_category>
+		static decltype(auto) apply( InputIterator begin, InputIterator end ) {
+			if( begin == end )
+				return zero::apply();
+			
+			auto result = apply( *begin );
+			while( ++begin != end )
+				result += apply( *begin );
 			return result;
 		}
 	};

@@ -13,6 +13,11 @@ struct quotient_r_algebra_tag {
 	static_assert( is_free_r_algebra_tag_v<FreeRAlgebraTag> );
 };
 
+template<class> struct is_quotient_r_algebra_tag : std::false_type {};
+template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
+struct is_quotient_r_algebra_tag<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> : std::true_type {};
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_quotient_r_algebra_tag)
+
 namespace detail {
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct quotient_r_algebra;

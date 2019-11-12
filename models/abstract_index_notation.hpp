@@ -67,11 +67,17 @@ public:
 struct coefficient_decomposer
 {
 	template<class IndecomposableCoefficient, class = std::enable_if_t<
-	is_free_r_algebra_tag_v<tag_of_t<IndecomposableCoefficient>> == false>>
-	static auto apply( IndecomposableCoefficient &&c )
+		is_free_r_algebra_tag_v<tag_of_t<IndecomposableCoefficient>> == false
+	>> static auto apply( IndecomposableCoefficient &&c )
 	{
-		return std::vector<std::vector<IndecomposableCoefficient>>{
-		std::vector<IndecomposableCoefficient>{ std::forward<IndecomposableCoefficient>( c ) }};
+		return std::array<std::array<IndecomposableCoefficient, 1>, 1>{
+			std::array<IndecomposableCoefficient, 1>{ std::forward<IndecomposableCoefficient>( c ) }
+		};
+	}
+	
+	template<class QRA, class = std::enable_if_t<is_quotient_r_algebra_tag_v<tag_of_t<QRA>>>>
+	static auto apply( const QRA &qra ) {
+		return apply( qra.representative() );
 	}
 	
 	template<class FRA, class = std::enable_if_t<is_free_r_algebra_tag_v<tag_of_t<FRA>>>>
@@ -80,14 +86,15 @@ struct coefficient_decomposer
 		using coefficient = decltype( fra.monomials().begin()->second );
 		using symbol = decltype( fra.monomials().begin()->first.front());
 		
-		using atom = typename decltype(apply( std::declval<coefficient>()))::value_type::value_type;
-		std::vector<std::vector<typename extend_variant<atom, symbol>::type>> result;
+		using atom = typename decltype(apply(std::declval<coefficient>()))::value_type::value_type;
+		using value_type = typename extend_variant<atom, symbol>::type;
+		std::vector<std::vector<value_type>> result;
 		
 		for( const auto &monomial : fra.monomials()) {
 			auto decomposed_coefficient = apply( monomial.second );
 			for( auto &&part : decomposed_coefficient ) {
-				std::vector<typename extend_variant<atom, symbol>::type> new_part;
-				new_part.reserve( part.size() + monomial.first.size());
+				std::vector<value_type> new_part;
+				new_part.reserve( std::size( part ) + std::size( monomial.first ) );
 				
 				for( auto &&element : part )
 					new_part.push_back( extend_variant<atom, symbol>::convert( std::move( element )));
@@ -112,7 +119,7 @@ struct select_type_with_tag<Tag, Type1, Alternatives...>
 	using type = std::conditional_t<std::is_same_v<Tag, tag_of_t<Type1>>, Type1, typename select_type_with_tag<Tag, Alternatives...>::type>;
 };
 
-template<class CoefficientTag>
+template<class CoefficientTag, class CoefficientRing>
 struct coefficient_composer
 {
 	template<class C, CXXMATH_ENABLE_IF_TAG_IS( C, tag_of_t<CoefficientTag> ) >
@@ -132,14 +139,13 @@ struct coefficient_composer
 		using type = typename select_type_with_tag<CoefficientTag, Alternatives...>::type;
 		return std::get<type>( std::move( part ));
 	}
-
 public:
 	template<class Range>
 	constexpr auto apply( Range &&parts ) const
 	{
-		auto coefficient = default_ring_t<CoefficientTag>::zero();
+		auto coefficient = CoefficientRing::zero();
 		for( auto cit = std::begin( parts ); cit != std::end( parts ); ++cit ) {
-			coefficient *= extract_coefficient( *cit );
+			CoefficientRing::multiply_assign( coefficient, extract_coefficient( *cit ) );
 		}
 		return coefficient;
 	}
@@ -198,7 +204,6 @@ class coefficient_composer<free_r_algebra_tag<Coefficient, Symbol, CoefficientSe
 		using type = typename select_type_with_tag<tag_of_t<Symbol>, Alternatives...>::type;
 		return std::get<type>( std::move( part ));
 	}
-
 public:
 	template<class Range>
 	static auto apply( Range &&parts )
@@ -217,6 +222,18 @@ public:
 							} );
 		
 		return ::cxxmath::make<r_algebra_tag>( std::move( coefficient ), std::move( symbol_range ));
+	}
+};
+
+template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
+class coefficient_composer<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>>
+{
+public:
+	template<class Range> static auto apply( Range &&parts )
+	{
+		return make<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>>(
+			coefficient_composer<FreeRAlgebraTag>::apply( std::forward<Range>( parts ) );
+		);
 	}
 };
 }
@@ -324,8 +341,8 @@ class abstract_index_quotient_spec
 			
 			current = std::make_pair( std::get<0>( index_coincidence ), std::get<1>( index_coincidence ) );
 			
-			auto s1_it = std::make_move_iterator( current.first );
-			auto s2_it = std::make_move_iterator( current.second );
+			auto s1_it = current.first;
+			auto s2_it = current.second;
 			
 			auto middle = ( s1_it == s2_it ) ? boost::make_iterator_range( s1_it, s1_it ) : boost::make_iterator_range(
 					std::next( s1_it ), s2_it );
@@ -335,10 +352,9 @@ class abstract_index_quotient_spec
 				continue;
 			
 			auto head = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
-											 boost::make_iterator_range( std::make_move_iterator( std::begin( symbols.begin ) ),
-																		 s1_it ));
+											 boost::make_iterator_range( std::begin( symbols ), s1_it ));
 			auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
-											 boost::make_iterator_range( ++s2_it, std::make_move_iterator( std::end( symbols.end ) ) ) );
+											 boost::make_iterator_range( ++s2_it, std::make_move_iterator( std::end( symbols ) ) ) );
 			
 			head *= std::move( *contracted );
 			head *= std::move( tail );
@@ -397,89 +413,51 @@ class abstract_index_quotient_spec
 	static std::optional<FRA> perform_cs_contractions( Coefficient &&c, SymbolRange &&symbols )
 	{
 		static_assert( std::is_rvalue_reference_v<Coefficient &&> );
-		
-		using coefficient = typename FRA::coefficient;
-		auto c_decomposed_view = detail::coefficient_decomposer::apply( c );
-		bool performed_contraction = false;
-		
-		if( std::size( c_decomposed ) == 1 ) {
-			auto contracted = perform_cparts_contractions<FRA>( std::move( *std::begin( c_decomposed ) ), std::forward<SymbolRange>( symbols ) );
-			return contracted;
-		}
+		auto c_decomposed = detail::coefficient_decomposer::apply( c );
 		
 		std::vector<std::decay_t<decltype(*std::begin(symbols))>> symbol_copies;
 		boost::range::copy( symbols, std::back_inserter( symbol_copies ) );
 		
-		auto current = std::begin( c_decomposed );
-		auto next_last = std::prev( std::end( c_decomposed ) );
-		std::optional<FRA> contracted;
+		std::optional<FRA> contraction_result;
+		auto contraction_it = std::find_if( std::begin( c_decomposed ), std::end( c_decomposed ),
+				[&] ( auto &&cpart_range ) {
+			contraction_result = perform_cparts_contractions<FRA>( std::move( cpart_range ), symbol_copies );
+			return contraction_result.has_value();
+		} );
 		
-		do {
-			contracted = perform_cparts_contractions<FRA>( std::move( *current ), std::move( symbol_copies ) );
-			
-			if( contracted ) {
-				auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
-					boost::make_iterator_range( std::begin( c_decomposed_view ), current )
-				);
-				symbol_copies = decltype(symbol_copies){};
-				boost::range::copy( symbols, std::back_inserter( symbol_copies ) );
-				
-				auto result = make<tag_of_t<FRA>>( std::move( coefficient ), std::move( symbol_copies ) );
-				result += *contracted;
-				
-				while( ++current != next_last ) {
-					symbol_copies = decltype(symbol_copies){};
-					boost::range::copy( symbols, std::back_inserter( symbol_copies ) );
-					contracted = perform_cparts_contractions<FRA>( std::move( *current ), std::move( symbol_copies ) );
-					
-					if( contracted )
-						result += *contracted;
-					else {
-						auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
-							boost::make_iterator_range( current, std::next( current ) )
-						);
-						result += make<tag_of_t<FRA>>( std::move( coefficient ), std::move( symbol_copies ) );
-					}
-				}
-				
-				contracted = perform_cparts_contractions<FRA>( std::move( *next_last ), std::forward<SymbolRange>( symbols ) );
-				
-				if( contracted )
-					result += *contracted;
-				else {
-					auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
-						boost::make_iterator_range( next_last, std::end( c_decomposed ) )
-					);
-					result += make<tag_of_t<FRA>>( std::move( coefficient ), std::forward<SymbolRange>( symbols ) );
-				}
-				
-				return result;
-			}
-		} while( ++cpart != next_last );
+		if( contraction_it == std::end( c_decomposed ) )
+			return std::nullopt_t;
 		
-		contracted = perform_cparts_contractions<FRA>( std::move( *next_last ), std::move( symbol_copies ) );
+		auto monomial_from_cpart = [&] ( auto &&cpart_range ) {
+			return monomial{symbol_copies, detail::coefficient_composer::apply<typename FRA::coefficient>(
+					boost::make_iterator_range(std::make_move_iterator(std::begin(cpart_range)),
+											   std::make_move_iterator(std::end(cpart_range))));};
+		};
 		
-		if( contracted ) {
-			auto result = *contracted;
-			auto next_next_last = std::prev( next_last );
-			for( current = std::begin( c_decomposed ); current != next_next_last; ++current ) {
-				symbol_copies = decltype(symbol_copies){};
-				boost::range::copy( symbols, std::back_inserter( symbol_copies ) );
-				
-				auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
-					boost::make_iterator_range( current, std::next( current ) );
-				);
-				result += make<tag_of_t<FRA>>( std::move( coefficient ), std::move( symbol_copies ) );
-			}
-			
-			auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
-				boost::make_iterator_range( *next_next_last, *next_last );
-			);
-			result += make<tag_of_t<FRA>>( std::move( coefficient ), std::forward<SymbolRange>( symbols ) );
-			return result;
+		using monomial = typename FRA::monomial_container::value_type;
+		std::vector<monomial> new_monomials;
+		std::transform( std::begin( c_decomposed ), contraction_it,
+				std::back_inserter( new_monomials ), monomial_from_cpart
+		);
+		
+		{
+			const auto &contracted_monomials = contraction_result->monomials();
+			new_monomials.insert(new_monomials.end(), std::make_move_iterator(std::begin(contracted_monomials)),
+								 std::make_move_iterator(std::end(contracted_monomials)));
 		}
 		
-		return make<tag_of_t<FRA>>( std::move( coefficient ), std::forward<SymbolRange>( symbols ) );
+		while( ++contraction_it != std::end( c_decomposed ) ) {
+			contraction_result = perform_cparts_contractions<FRA>( std::move( *contraction_it ), symbol_copies );
+			
+			if( contraction_result ) {
+				const auto &contracted_monomials = contraction_result->monomials();
+				new_monomials.insert(new_monomials.end(), std::make_move_iterator(std::begin(contracted_monomials)),
+									 std::make_move_iterator(std::end(contracted_monomials)));
+			} else
+				new_monomials.push_back( monomial_from_cpart( std::move( *contraction_it ) ) );
+		}
+		
+		return make<tag_of_t<FRA>>( std::make_move_iterator( new_monomials.begin() ), std::make_move_iterator( new_monomials.end() ) );
 	}
 public:
 	using multiplication_is_commutative = impl::false_implementation;
@@ -489,19 +467,36 @@ public:
 		template<class FRA>
 		static FRA &apply( FRA &fra )
 		{
-			auto contracted = default_ring_t<tag_of_t<FRA>>::zero();
-			for( auto &&monomial : fra.monomials())
-				contracted += perform_ss_contractions<FRA>( std::move( monomial.first ));
+			std::vector<typename FRA::monomial_container::value_type> new_monomials;
+			for( auto monomial = fra.monomials().begin(); monomial != fra.monomials().end(); ++monomial ) {
+				auto contraction_result = perform_ss_contractions<FRA>(
+					boost::make_iterator_range( std::make_move_iterator( monomial->first.begin() ) ),
+					boost::make_iterator_range( std::make_move_iterator( monomial->first.end() ) )
+				);
+				
+				if( contraction_result ) {
+					FRA::scalar_multiply_assign( std::move( monomial->second ), *contraction_result );
+					
+					const auto &contracted_monomials = contraction_result->monomials();
+					new_monomials.insert( new_monomials.end(), std::make_move_iterator( contracted_monomials.begin() ), std::make_move_iterator( contracted_monomials.end() ) );
+				} else
+					new_monomials.push_back( std::move( *monomial ) );
+			}
 			
-			fra = default_ring_t<tag_of_t<FRA>>::zero();
-			for( auto &&monomial : contracted.monomials())
-				fra += perform_cs_contractions<FRA>( std::move( monomial.second ), std::move( monomial.first ));
+			fra = make<tag_of_t<FRA>>( std::make_move_iterator( new_monomials.begin() ), std::make_move_iterator( new_monomials.end() ) );
+			new_monomials.clear();
 			
-			contracted = default_ring_t<tag_of_t<FRA>>::zero();
-			for( auto &&monomial : fra.monomials())
-				fra += perform_cc_contractions<FRA>( std::move( monomial.second ), std::move( monomial.first ));
+			for( auto monomial = fra.monomials().begin(); monomial != fra.monomials().end(); ++monomial ) {
+				auto contraction_result = perform_cs_contractions<FRA>( std::move( monomial->second ), std::move( monomial->first ) );
+				
+				if( contraction_result ) {
+					const auto &contracted_monomials = contraction_result->monomials();
+					new_monomials.insert( new_monomials.end(), std::make_move_iterator( contracted_monomials.begin() ), std::make_move_iterator( contracted_monomials.end() ) );
+				} else
+					new_monomials.push_back( std::move( *monomial ) );
+			}
 			
-			fra = std::move( contracted );
+			fra = make<tag_of_t<FRA>>( std::make_move_iterator( new_monomials.begin() ), std::make_move_iterator( new_monomials.end() ) );
 			return fra;
 		}
 	};
