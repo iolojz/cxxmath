@@ -78,7 +78,7 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 		static constexpr auto canonicalize_monomial( Monomial &&monomial ) {
 			using algebra = typename model_free_r_algebra::free_r_algebra_concepts<FRATag>::algebra;
 			
-			using total_symbol_order = typename FRATag::total_symbol_order;
+			using total_symbol_order = typename FRATag::symbol_total_order;
 			using less_symbols = detail::less_from_total_order<total_symbol_order>;
 			
 			auto symbols = std::move( std_get_product::first( monomial ) );
@@ -92,7 +92,7 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 			
 			auto clifford_coefficient = BilinearForm::apply( *last_ordered, *( last_ordered + 1 ));
 			if( total_symbol_order::equal( *last_ordered, *( last_ordered + 1 ))) {
-				auto shortened_coefficient = std::move( std_get_product::second( monomial ) ) * std::move( clifford_coefficient );
+				auto shortened_coefficient = CoefficientRing::multiply( std_get_product::second( monomial ), std::move( clifford_coefficient ) );
 				symbols.erase( last_ordered, last_ordered + 2 );
 				
 				return canonicalize_monomial<FRATag>( std::make_pair(
@@ -100,15 +100,16 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 				) );
 			}
 			
-			auto permuted_coefficient = - std_get_product::second( monomial );
+			auto permuted_coefficient = CoefficientRing::negate( std_get_product::second( monomial ) );
 			std::swap( *last_ordered, *( last_ordered + 1 ));
 			auto canonicalized_polynomial = canonicalize_monomial<FRATag>( std::make_pair(
 				symbols, std::move( permuted_coefficient )
 			) );
 			
-			auto one = CoefficientRing::one();
-			auto two = CoefficientRing::add_assign(one + one);
-			auto shortened_coefficient = two * std::move( std_get_product::second( monomial ) ) * std::move( clifford_coefficient );
+			auto two = CoefficientRing::one();
+			CoefficientRing::add_assign(two, two);
+			
+			auto shortened_coefficient = CoefficientRing::multiply( two, CoefficientRing::multiply( std::move( std_get_product::second( monomial ) ), std::move( clifford_coefficient ) ) );
 			symbols.erase( last_ordered, last_ordered + 2 );
 			algebra::add_assign( canonicalized_polynomial, canonicalize_monomial<FRATag>( std::make_pair(
 				std::move( symbols ), std::move( shortened_coefficient )

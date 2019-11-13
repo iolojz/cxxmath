@@ -6,9 +6,13 @@
 #define CXXMATH_MODELS_ABSTRACT_INDEX_NOTATION_HPP
 
 #include <variant>
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/range/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "quotient_r_algebra.hpp"
+
+#include "helpers/is_std_variant.hpp"
 
 // TODO: Make everything independent on default_...<>
 
@@ -70,8 +74,10 @@ struct coefficient_decomposer
 		is_free_r_algebra_tag_v<tag_of_t<IndecomposableCoefficient>> == false
 	>> static auto apply( IndecomposableCoefficient &&c )
 	{
-		return std::array<std::array<IndecomposableCoefficient, 1>, 1>{
-			std::array<IndecomposableCoefficient, 1>{ std::forward<IndecomposableCoefficient>( c ) }
+		using value_type = std::decay_t<IndecomposableCoefficient>;
+		
+		return std::array<std::array<value_type, 1>, 1>{
+			std::array<value_type, 1>{ std::forward<IndecomposableCoefficient>( c ) }
 		};
 	}
 	
@@ -83,8 +89,8 @@ struct coefficient_decomposer
 	template<class FRA, class = std::enable_if_t<is_free_r_algebra_tag_v<tag_of_t<FRA>>>, class = void>
 	static auto apply( const FRA &fra )
 	{
-		using coefficient = decltype( fra.monomials().begin()->second );
-		using symbol = decltype( fra.monomials().begin()->first.front());
+		using coefficient = typename tag_of_t<FRA>::coefficient;
+		using symbol = typename tag_of_t<FRA>::symbol;
 		
 		using atom = typename decltype(apply(std::declval<coefficient>()))::value_type::value_type;
 		using value_type = typename extend_variant<atom, symbol>::type;
@@ -98,7 +104,7 @@ struct coefficient_decomposer
 				
 				for( auto &&element : part )
 					new_part.push_back( extend_variant<atom, symbol>::convert( std::move( element )));
-				new_part.insert( new_part.end(), std::begin( monomial.variables ), std::end( monomial.variables ));
+				new_part.insert( new_part.end(), std::begin( monomial.first ), std::end( monomial.first ));
 				
 				result.push_back( std::move( new_part ));
 			}
@@ -123,9 +129,10 @@ template<class CoefficientTag>
 struct coefficient_composer
 {
 	template<class C, CXXMATH_ENABLE_IF_TAG_IS( C, tag_of_t<CoefficientTag> ) >
-	static constexpr decltype( auto ) extract_coefficient( C &&part )
+	static constexpr auto extract_coefficient( C &&part )
 	{ return std::forward<C>( part ); }
 	
+	/* TODO: remove this
 	template<class ...Alternatives>
 	static constexpr decltype( auto ) extract_coefficient( const std::variant<Alternatives...> &part )
 	{
@@ -138,16 +145,17 @@ struct coefficient_composer
 	{
 		using type = typename select_type_with_tag<CoefficientTag, Alternatives...>::type;
 		return std::get<type>( std::move( part ));
-	}
+	} */
 public:
 	template<class Range>
 	constexpr auto apply( Range &&parts ) const
 	{
-		auto coefficient = CoefficientRing::zero();
-		for( auto cit = std::begin( parts ); cit != std::end( parts ); ++cit ) {
-			CoefficientRing::multiply_assign( coefficient, extract_coefficient( *cit ) );
-		}
-		return coefficient;
+		if( std::size( parts ) != 1 )
+			throw std::runtime_error( "coefficient_composer: given range does not have precisely one part" );
+		if( std::is_same_v<CoefficientTag, tag_of_t<decltype(*std::begin( parts ))>> == false )
+			throw std::runtime_error( "coefficient_composer: tag mismatch in given range" );
+		
+		return *std::begin( parts );
 	}
 };
 
@@ -156,72 +164,61 @@ class coefficient_composer<free_r_algebra_tag<Coefficient, Symbol, CoefficientSe
 {
 	using r_algebra_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 	
-	template<class Part>
-	static constexpr bool is_symbol( const Part &part )
-	{
-		if constexpr( std::is_same_v<tag_of_t<Part>, tag_of_t<Symbol>> )
+	template<class Part> static constexpr bool is_coefficient( const Part &part ) {
+		if constexpr( std::is_same_v<tag_of_t<Part>, tag_of_t<Coefficient>> )
 			return true;
+		else if constexpr( is_std_variant_v<std::decay_t<Part>> )
+			return std::visit( []( const auto &p ) { return is_coefficient( p ); }, part );
 		else
 			return false;
 	}
 	
-	template<class ...Alternatives>
-	static constexpr bool is_symbol( const std::variant<Alternatives...> &v )
-	{ return std::visit( []( const auto &part ) { return is_symbol( part ); }, v ); }
-	
-	template<class C, CXXMATH_ENABLE_IF_TAG_IS( C, tag_of_t<Coefficient> ) >
-	static constexpr decltype( auto ) extract_coefficient( C &&part )
-	{ return std::forward<C>( part ); }
-	
-	template<class ...Alternatives>
-	static constexpr decltype( auto ) extract_coefficient( const std::variant<Alternatives...> &part )
+	template<class C> static constexpr auto extract_coefficient( C &&part )
 	{
-		using type = typename select_type_with_tag<tag_of_t<Coefficient>, Alternatives...>::type;
-		return std::get<type>( part );
+		if constexpr( std::is_same_v<tag_of_t<C>, tag_of_t<Coefficient>> )
+			return std::forward<C>( part );
+		else if constexpr( is_std_variant_v<std::decay_t<C>> )
+			return std::visit( []( auto &&p ) { return extract_coefficient( std::forward<decltype(p)>( p ) ); }, std::forward<C>( part ) );
+		else
+			static_assert( false );
 	}
 	
-	template<class ...Alternatives>
-	static constexpr decltype( auto ) extract_coefficient( std::variant<Alternatives...> &&part )
+	template<class S> static constexpr auto extract_symbol( S &&part )
 	{
-		using type = typename select_type_with_tag<tag_of_t<Coefficient>, Alternatives...>::type;
-		return std::get<type>( std::move( part ));
-	}
-	
-	template<class S, CXXMATH_ENABLE_IF_TAG_IS( S, tag_of_t<Symbol> ) >
-	static constexpr decltype( auto ) extract_symbol( S &&part )
-	{ return std::forward<S>( part ); }
-	
-	template<class ...Alternatives>
-	static constexpr decltype( auto ) extract_symbol( const std::variant<Alternatives...> &part )
-	{
-		using type = typename select_type_with_tag<tag_of_t<Symbol>, Alternatives...>::type;
-		return std::get<type>( part );
-	}
-	
-	template<class ...Alternatives>
-	static constexpr decltype( auto ) extract_symbol( std::variant<Alternatives...> &&part )
-	{
-		using type = typename select_type_with_tag<tag_of_t<Symbol>, Alternatives...>::type;
-		return std::get<type>( std::move( part ));
+		if constexpr( std::is_same_v<tag_of_t<S>, tag_of_t<Symbol>> )
+			return std::forward<S>( part );
+		else if constexpr( is_std_variant_v<std::decay_t<S>> )
+			return std::visit( []( auto &&p ) { return extract_symbol( std::forward<decltype(p)>( p ) ); }, std::forward<C>( part ) );
+		else
+			static_assert( false );
 	}
 public:
 	template<class Range>
 	static auto apply( Range &&parts )
 	{
-		auto symbols_begin = std::find_if( std::begin( parts ), std::end( parts ), is_symbol );
+		if( std::size( parts ) == 0 )
+			throw std::runtime_error( "coefficient_composer: given range is empty" );
 		
-		auto coefficient = Ring::zero();
-		for( auto cit = std::begin( parts ); cit != symbols_begin; ++cit ) {
-			Ring::multiply_assign( coefficient, extract_coefficient( *cit ) );
+		if( is_coefficient( *std::begin(parts) ) ) {
+			auto coefficient = make<tag_of_t<Coefficient>>( extract_coefficient( *std::begin(parts) ) );
+			return make<r_algebra_tag>( std::move( coefficient ),
+				boost::make_iterator_range(
+					std::next( std::begin( parts ) ),
+					std::end( parts )
+				) | boost::adaptors::transformed( []( auto &&p ) {
+					return extract_symbol( std::forward<decltype(p)>( p ) );
+				} )
+			);
+		} else {
+			return make<r_algebra_tag>( CoefficientRing::one(),
+				boost::make_iterator_range(
+					std::begin( parts ),
+					std::end( parts )
+				) | boost::adaptors::transformed( []( auto &&p ) {
+					return extract_symbol( std::forward<decltype(p)>( p ) );
+				} )
+			);
 		}
-		
-		auto symbol_range = boost::make_iterator_range( std::make_move_iterator( symbols_begin ),
-														std::make_move_iterator( std::end( parts ))) |
-							boost::adaptors::transformed( []( auto &&part ) {
-								return extract_symbol( std::forward<decltype( part )>( part ));
-							} );
-		
-		return ::cxxmath::make<r_algebra_tag>( std::move( coefficient ), std::move( symbol_range ));
 	}
 };
 
@@ -232,7 +229,7 @@ public:
 	template<class Range> static auto apply( Range &&parts )
 	{
 		return make<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>>(
-			coefficient_composer<FreeRAlgebraTag>::apply( std::forward<Range>( parts ) );
+			coefficient_composer<FreeRAlgebraTag>::apply( std::forward<Range>( parts ) )
 		);
 	}
 };
@@ -268,13 +265,13 @@ class abstract_index_quotient_spec
 		return indices;
 	}
 	
-	template<class IteratorPair, class Range1, class Range2, bool disjoint>
-	static IteratorPair &advance_index_pair( IteratorPair &iterator_pair, const Range1 &r1, const Range2 &r2 ) {
+	template<bool disjoint, class IteratorPair, class Range1, class Range2>
+	static IteratorPair &advance_iterator_pair( IteratorPair &iterator_pair, Range1 &&r1, Range2 &&r2 ) {
 		if( iterator_pair.second == std::end( r2 ) ) {
 			++(iterator_pair.first);
 			
 			if constexpr( disjoint )
-				iterator_pair.second = std::begin( r1 );
+				iterator_pair.second = std::begin( r2 );
 			else
 				iterator_pair.second = iterator_pair.first;
 		} else
@@ -283,10 +280,10 @@ class abstract_index_quotient_spec
 		return iterator_pair;
 	};
 	
-	template<class IteratorPair, class Range1, class Range2>
-	static auto find_index_coincidence( IteratorPair begin, Range1 &&range1, Range2 &&range2, bool disjoint )
+	template<bool disjoint, class IteratorPair, class Range1, class Range2>
+	static auto find_index_coincidence( IteratorPair begin, Range1 &&range1, Range2 &&range2 )
 	{
-		using indices_type = decltype( IndexHandler::extract_indices( *std::begin( range1 )));
+		using indices_type = decltype( IndexHandler::extract_indices::apply( *std::begin( range1 )));
 		using common_indices_type = std::decay_t<decltype( index_intersection( std::declval<indices_type>(),
 																			   std::declval<indices_type>()))>;
 		
@@ -295,19 +292,21 @@ class abstract_index_quotient_spec
 		
 		auto end = std::make_pair( std::end( range1 ), std::end( range2 ) );
 		do {
-			auto r1_indices = IndexHandler::extract_indices( *(begin.first) );
+			auto r1_indices = IndexHandler::extract_indices::apply( *(begin.first) );
 			std::sort( std::begin( r1_indices ), std::end( r1_indices ),
 					   function_object_v<typename IndexHandler::less_indices> );
 			auto r1_indices_moved = boost::make_iterator_range( std::make_move_iterator( std::begin( r1_indices )),
 																std::make_move_iterator( std::end( r1_indices )));
 			
-			if( disjoint == false && begin.first == begin.second ) {
-				auto self_intersection = index_intersection( r1_indices_moved );
-				if( self_intersection.size() != 0 )
-					return std::make_tuple( begin.first, begin.first, std::move( self_intersection ));
+			if constexpr( disjoint == false ) {
+				if( begin.first == begin.second ) {
+					auto self_intersection = index_intersection( r1_indices_moved );
+					if( self_intersection.size() != 0 )
+						return std::make_tuple( begin.first, begin.first, std::move( self_intersection ));
+				}
 			}
 			
-			auto r2_indices = IndexHandler::extract_indices( *(begin.second) );
+			auto r2_indices = IndexHandler::extract_indices::apply( *(begin.second) );
 			std::sort( r2_indices.begin(), r2_indices.end(),
 					   function_object_v<typename IndexHandler::less_indices> );
 			auto r2_indices_moved = boost::make_iterator_range( std::make_move_iterator( std::begin( r2_indices )),
@@ -317,7 +316,7 @@ class abstract_index_quotient_spec
 			
 			if( std::size( common_indices ) != 0 )
 				return std::make_tuple( begin.first, begin.second, std::move( common_indices ));
-		} while( advance_iterator_pair( begin, range1, range2, disjoint ) != end );
+		} while( advance_iterator_pair<disjoint>( begin, std::forward<Range1>( range1 ), std::forward<Range2>( range2 ) ) != end );
 		
 		return std::make_tuple( std::end( range1 ), std::end( range2 ), common_indices_type{} );
 	}
@@ -329,11 +328,11 @@ class abstract_index_quotient_spec
 		auto end = std::make_pair( std::end( symbols ), std::end( symbols ) );
 		
 		auto advance = [&symbols] ( auto &iterator_pair ) {
-			return advance_iterator_pair( iterator_pair, symbols, symbols, false );
+			return advance_iterator_pair<false>( iterator_pair, symbols, symbols );
 		};
 		
 		for( auto current = begin; current.first != end.first; advance( current ) ) {
-			auto index_coincidence = find_index_coincidence( current, symbols, symbols, false );
+			auto index_coincidence = find_index_coincidence<false>( current, symbols, symbols );
 			auto common_indices = std::get<2>( index_coincidence );
 			
 			if( std::size( common_indices ) == 0 )
@@ -362,7 +361,7 @@ class abstract_index_quotient_spec
 			
 			head *= std::move( *contracted );
 			head *= std::move( tail );
-			return quotient_map_in_place( head );
+			return quotient_map_in_place::apply( head );
 		}
 		
 		return std::nullopt;
@@ -373,12 +372,12 @@ class abstract_index_quotient_spec
 	{
 		auto begin = std::make_pair( std::begin( cparts ), std::begin( symbols ) );
 		
-		auto advance = [&symbols] ( auto &iterator_pair ) {
-			return advance_iterator_pair( iterator_pair, cparts, symbols, true );
+		auto advance = [&symbols, &cparts] ( auto &iterator_pair ) {
+			return advance_iterator_pair<true>( iterator_pair, cparts, symbols );
 		};
 		
-		for( auto current = begin; current.first != end.first; advance( current ) ) {
-			auto index_coincidence = find_index_coincidence( current, cparts, symbols, true );
+		for( auto current = begin; current.first != std::end( cparts ); advance( current ) ) {
+			auto index_coincidence = find_index_coincidence<true>( current, cparts, symbols );
 			auto common_indices = std::get<2>( index_coincidence );
 			
 			if( std::size( common_indices ) == 0 )
@@ -386,28 +385,28 @@ class abstract_index_quotient_spec
 			
 			current = std::make_pair( std::get<0>( index_coincidence ), std::get<1>( index_coincidence ) );
 			
-			auto cpart_it = std::make_move_iterator( current.first );
-			auto s_it = std::make_move_iterator( current.second );
+			auto cpart_it = current.first;
+			auto s_it = current.second;
 			
 			auto middle = boost::range::join(
-				boost::make_iterator_range( std::next( cpart_it ), std::make_move_iterator( std::end( cparts ) ) ),
-				boost::make_iterator_range( std::make_move_iterator( std::begin( symbols ) ), s_it )
+				boost::make_iterator_range( std::next( cpart_it ), std::end( cparts ) ),
+				boost::make_iterator_range( std::begin( symbols ), s_it )
 			);
 			
 			auto contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *cpart_it, std::move( middle ), *s_it, std::move( common_indices ));
 			if( contracted == std::nullopt )
 				continue;
 			
-			auto coefficient = detail::coefficient_composer::apply<typename FRA::coefficient>(
-				boost::make_iterator_range( std::make_move_iterator( std::begin( cparts ) ), cpart_it )
+			auto coefficient = detail::coefficient_composer<tag_of_t<typename FRA::coefficient>>::apply(
+				boost::make_iterator_range( std::begin( cparts ), cpart_it )
 			);
 			auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
-											 boost::make_iterator_range( ++s_it, std::make_move_iterator( std::end( symbols ) ) ) );
+											 boost::make_iterator_range( ++s_it, std::end( symbols ) ) );
 			
 			scalar_multiply_assign( std::move( coefficient ), contracted );
 			contracted *= std::move( tail );
 			
-			return quotient_map_in_place( contracted );
+			return quotient_map_in_place::apply( contracted );
 		}
 		
 		return std::nullopt;
@@ -430,15 +429,15 @@ class abstract_index_quotient_spec
 		} );
 		
 		if( contraction_it == std::end( c_decomposed ) )
-			return std::nullopt_t;
-		
-		auto monomial_from_cpart = [&] ( auto &&cpart_range ) {
-			return monomial{symbol_copies, detail::coefficient_composer::apply<typename FRA::coefficient>(
-					boost::make_iterator_range(std::make_move_iterator(std::begin(cpart_range)),
-											   std::make_move_iterator(std::end(cpart_range))));};
-		};
+			return std::nullopt;
 		
 		using monomial = typename FRA::monomial_container::value_type;
+		auto monomial_from_cpart = [&] ( auto &&cpart_range ) {
+			return monomial{symbol_copies, detail::coefficient_composer<tag_of_t<typename FRA::coefficient>>::apply(
+					boost::make_iterator_range(std::make_move_iterator(std::begin(cpart_range)),
+											   std::make_move_iterator(std::end(cpart_range))))};
+		};
+		
 		std::vector<monomial> new_monomials;
 		std::transform( std::begin( c_decomposed ), contraction_it,
 				std::back_inserter( new_monomials ), monomial_from_cpart
@@ -474,12 +473,14 @@ public:
 			std::vector<typename FRA::monomial_container::value_type> new_monomials;
 			for( auto monomial = fra.monomials().begin(); monomial != fra.monomials().end(); ++monomial ) {
 				auto contraction_result = perform_ss_contractions<FRA>(
-					boost::make_iterator_range( std::make_move_iterator( monomial->first.begin() ) ),
-					boost::make_iterator_range( std::make_move_iterator( monomial->first.end() ) )
+					boost::make_iterator_range(
+						std::make_move_iterator( std::begin( monomial->first ) ),
+						std::make_move_iterator( std::end( monomial->first ) )
+					)
 				);
 				
 				if( contraction_result ) {
-					FRA::scalar_multiply_assign( std::move( monomial->second ), *contraction_result );
+					FRA::scalar_multiply_assign::apply( std::move( monomial->second ), *contraction_result );
 					
 					const auto &contracted_monomials = contraction_result->monomials();
 					new_monomials.insert( new_monomials.end(), std::make_move_iterator( contracted_monomials.begin() ), std::make_move_iterator( contracted_monomials.end() ) );

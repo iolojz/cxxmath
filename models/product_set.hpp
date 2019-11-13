@@ -54,12 +54,32 @@ struct equal
 };
 }
 
-template<class Product> using product_set = concepts::set<model_product_set::equal<Product>>;
+template<class Product, class FirstSet = void, class SecondSet = void>
+using product_set = concepts::set<model_product_set::equal<Product, FirstSet, SecondSet>>;
+
+namespace detail {
+template<class DispatchTag, bool> class has_default_product_set {
+	using product = default_product_t<DispatchTag>;
+public:
+	static constexpr bool value = std::conditional_t<
+		product::has_unique_first_tag && product::has_unique_second_tag,
+		std::bool_constant<has_default_set_v<typename product::unique_first_tag> && has_default_set_v<typename product::unique_first_tag>>,
+		std::false_type
+	>::value;
+};
+
+template<class DispatchTag> class has_default_product_set<DispatchTag, false> : public std::false_type {};
+}
+
+template<class DispatchTag> struct has_default_product_set
+: public detail::has_default_product_set<DispatchTag, has_default_product_v<DispatchTag>> {};
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(has_default_product_set)
 
 namespace impl
 {
+
 template<class DispatchTag>
-struct default_set<DispatchTag, std::enable_if_t<has_default_product_v<DispatchTag>>>
+struct default_set<DispatchTag, std::enable_if_t<has_default_product_set_v<DispatchTag>>>
 {
 	using type = product_set<default_product_t<DispatchTag>>;
 };

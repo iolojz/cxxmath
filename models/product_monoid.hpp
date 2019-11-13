@@ -163,12 +163,30 @@ template<class Product, class FirstMonoid = void, class SecondMonoid = void> usi
 	model_product_monoid::is_abelian_monoid<Product, FirstMonoid, SecondMonoid>
 >;
 
+namespace detail {
+template<class DispatchTag, bool> class has_default_product_monoid {
+	using product = default_product_t<DispatchTag>;
+public:
+	static constexpr bool value  = std::conditional_t<
+		product::has_unique_first_tag && product::has_unique_second_tag,
+		std::bool_constant<has_default_monoid_v<product::unique_first_tag> && has_default_monoid_v<product::unique_first_tag>>,
+		std::false_type
+	>::value;
+};
+
+template<class DispatchTag> class has_default_product_monoid<DispatchTag, false> : public std::false_type {};
+}
+
+template<class DispatchTag> struct has_default_product_monoid
+: public detail::has_default_product_monoid<DispatchTag, has_default_product_v<DispatchTag>> {};
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(has_default_product_monoid)
+
 namespace impl
 {
 template<class DispatchTag>
-struct default_monoid<DispatchTag, std::enable_if_t<has_default_product_v<DispatchTag>>>
+struct default_monoid<DispatchTag, std::enable_if_t<has_default_product_monoid_v<DispatchTag>>>
 {
-using type = product_monoid<default_product_t<DispatchTag>>;
+	using type = product_monoid<default_product_t<DispatchTag>>;
 };
 }
 }

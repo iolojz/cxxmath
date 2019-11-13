@@ -11,6 +11,12 @@ namespace cxxmath {
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct quotient_r_algebra_tag {
 	static_assert( is_free_r_algebra_tag_v<FreeRAlgebraTag> );
+	
+	using coefficient = typename FreeRAlgebraTag::coefficient;
+	using symbol = typename FreeRAlgebraTag::symbol;
+	using coefficient_set = typename FreeRAlgebraTag::coefficient_set;
+	using coefficient_ring = typename FreeRAlgebraTag::coefficient_ring;
+	using symbol_total_order = typename FreeRAlgebraTag::symbol_total_order;
 };
 
 template<class> struct is_quotient_r_algebra_tag : std::false_type {};

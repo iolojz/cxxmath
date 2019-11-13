@@ -18,9 +18,9 @@ struct binary_operator : forward_supported_tags<BinaryOperatorAssign>
 	static constexpr auto apply( Arg1 &&arg1, Arg2 &&arg2 )
 	{
 		if constexpr( std::is_rvalue_reference_v < Arg1 &&> )
-		return BinaryOperatorAssign::apply( arg1, std::forward<Arg2>( arg2 ));
+			return BinaryOperatorAssign::apply( arg1, std::forward<Arg2>( arg2 ));
 		else if constexpr( if_( IsAbelian::apply(), std::is_rvalue_reference_v < Arg2 && > , false ))
-		return BinaryOperatorAssign::apply( arg2, std::forward<Arg1>( arg1 ));
+			return BinaryOperatorAssign::apply( arg2, std::forward<Arg1>( arg1 ));
 		else {
 			auto copy = std::decay_t < Arg1 > { std::forward<Arg1>( arg1 ) };
 			BinaryOperatorAssign::apply( copy, std::forward<Arg2>( arg2 ));

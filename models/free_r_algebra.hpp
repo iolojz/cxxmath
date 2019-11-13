@@ -37,7 +37,9 @@ struct is_free_r_algebra_tag<free_r_algebra_tag<Coefficient, Symbol, Coefficient
 : std::true_type {};
 CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_free_r_algebra_tag)
 
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
+template<class Coefficient, class Symbol, class CoefficientSet = default_set_t<tag_of_t<Coefficient>>,
+		class CoefficientRing = default_ring_t<tag_of_t<Coefficient>>,
+		class SymbolTotalOrder = default_total_order_t<tag_of_t<Symbol>>>
 struct free_r_algebra {
 	using cxxmath_dispatch_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 	
