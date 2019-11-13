@@ -165,32 +165,30 @@ class coefficient_composer<free_r_algebra_tag<Coefficient, Symbol, CoefficientSe
 	using r_algebra_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 	
 	template<class Part> static constexpr bool is_coefficient( const Part &part ) {
-		if constexpr( std::is_same_v<tag_of_t<Part>, tag_of_t<Coefficient>> )
-			return true;
-		else if constexpr( is_std_variant_v<std::decay_t<Part>> )
+		if constexpr( is_std_variant_v<std::decay_t<Part>> )
 			return std::visit( []( const auto &p ) { return is_coefficient( p ); }, part );
 		else
-			return false;
+			return std::is_same_v<tag_of_t<Part>, tag_of_t<Coefficient>>;
 	}
 	
-	template<class C> static constexpr auto extract_coefficient( C &&part )
+	template<class C> static Coefficient extract_coefficient( C &&part )
 	{
-		if constexpr( std::is_same_v<tag_of_t<C>, tag_of_t<Coefficient>> )
-			return std::forward<C>( part );
-		else if constexpr( is_std_variant_v<std::decay_t<C>> )
+		if constexpr( is_std_variant_v<std::decay_t<C>> )
 			return std::visit( []( auto &&p ) { return extract_coefficient( std::forward<decltype(p)>( p ) ); }, std::forward<C>( part ) );
+		else if constexpr( std::is_same_v<tag_of_t<C>, tag_of_t<Coefficient>> )
+			return std::forward<C>( part );
 		else
-			static_assert( false );
+			throw std::runtime_error( "attempt to extract coefficient from symbol" );
 	}
 	
-	template<class S> static constexpr auto extract_symbol( S &&part )
+	template<class S> static Symbol extract_symbol( S &&part )
 	{
-		if constexpr( std::is_same_v<tag_of_t<S>, tag_of_t<Symbol>> )
+		if constexpr( is_std_variant_v<std::decay_t<S>> )
+			return std::visit( []( auto &&p ) { return extract_symbol( std::forward<decltype(p)>( p ) ); }, std::forward<S>( part ) );
+		else if constexpr( std::is_same_v<tag_of_t<C>, tag_of_t<Coefficient>> )
 			return std::forward<S>( part );
-		else if constexpr( is_std_variant_v<std::decay_t<S>> )
-			return std::visit( []( auto &&p ) { return extract_symbol( std::forward<decltype(p)>( p ) ); }, std::forward<C>( part ) );
 		else
-			static_assert( false );
+			throw std::runtime_error( "attempt to extract symbol from coefficient" );
 	}
 public:
 	template<class Range>
@@ -199,7 +197,7 @@ public:
 		if( std::size( parts ) == 0 )
 			throw std::runtime_error( "coefficient_composer: given range is empty" );
 		
-		if( is_coefficient( *std::begin(parts) ) ) {
+		if( is_coefficient( *std::begin( parts ) ) ) {
 			auto coefficient = make<tag_of_t<Coefficient>>( extract_coefficient( *std::begin(parts) ) );
 			return make<r_algebra_tag>( std::move( coefficient ),
 				boost::make_iterator_range(
@@ -209,16 +207,16 @@ public:
 					return extract_symbol( std::forward<decltype(p)>( p ) );
 				} )
 			);
-		} else {
-			return make<r_algebra_tag>( CoefficientRing::one(),
-				boost::make_iterator_range(
-					std::begin( parts ),
-					std::end( parts )
-				) | boost::adaptors::transformed( []( auto &&p ) {
-					return extract_symbol( std::forward<decltype(p)>( p ) );
-				} )
-			);
 		}
+		
+		return make<r_algebra_tag>( CoefficientRing::one(),
+			boost::make_iterator_range(
+				std::begin( parts ),
+				std::end( parts )
+			) | boost::adaptors::transformed( []( auto &&p ) {
+				return extract_symbol( std::forward<decltype(p)>( p ) );
+			} )
+		);
 	}
 };
 
