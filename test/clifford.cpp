@@ -312,7 +312,6 @@ BOOST_AUTO_TEST_CASE( clifford_algebra_int )
 	const auto gamma_3 = make<clifford_tag>( coefficient_one, gamma_matrix{ 3 } );
 	const auto gamma_4 = make<clifford_tag>( coefficient_one, gamma_matrix{ 4 } );
 	
-	/*
 	BOOST_TEST( gamma_1 * gamma_1 == one );
 	BOOST_TEST( gamma_2 * gamma_2 == one );
 	BOOST_TEST( gamma_3 * gamma_3 == one );
@@ -326,5 +325,4 @@ BOOST_AUTO_TEST_CASE( clifford_algebra_int )
 	BOOST_TEST( gamma_1 * gamma_2 * gamma_3 == gamma_2 * gamma_3 * gamma_1 );
 	BOOST_TEST( gamma_2 * gamma_1 * gamma_3 == - gamma_2 * gamma_3 * gamma_1 );
 	BOOST_TEST( gamma_1 * gamma_2 * gamma_1 == - gamma_2 );
-	*/
 }
