@@ -170,7 +170,7 @@ using free_metric_entry_algebra = cxxmath::free_r_algebra<d_int_polynomial, form
 using metric_entry_quotient_spec = cxxmath::abstract_index_quotient_spec<formal_metric_index_handler>;
 using metric_entry_algebra = cxxmath::quotient_r_algebra<cxxmath::tag_of_t<free_metric_entry_algebra>, metric_entry_quotient_spec>;
 
-using free_gamma_algebra = cxxmath::free_r_algebra_tag<metric_entry_algebra, gamma_matrix>;
+using free_gamma_algebra = cxxmath::free_r_algebra<metric_entry_algebra, gamma_matrix>;
 using clifford_quotient_spec = cxxmath::composed_quotients<
 	cxxmath::abstract_index_quotient_spec<gamma_index_handler>,
 	cxxmath::clifford_quotient_spec<
@@ -180,7 +180,7 @@ using clifford_quotient_spec = cxxmath::composed_quotients<
 >;
 }
 
-using clifford = cxxmath::quotient_r_algebra<type_helpers::free_gamma_algebra, type_helpers::clifford_quotient_spec>;
+using clifford = cxxmath::quotient_r_algebra<cxxmath::tag_of_t<type_helpers::free_gamma_algebra>, type_helpers::clifford_quotient_spec>;
 
 template<> class formal_metric_index_handler::contract_indices<cxxmath::tag_of_t<type_helpers::free_metric_entry_algebra>> {
 	using d_int_polynomial_tag = cxxmath::tag_of_t<type_helpers::d_int_polynomial>;
@@ -254,61 +254,61 @@ public:
 
 template<> class gamma_index_handler::contract_indices<cxxmath::tag_of_t<type_helpers::free_gamma_algebra>> {
 	template<class Range> static decltype(auto) compose_coefficient( Range &&r ) {
-		return cxxmath::detail::coefficient_composer<type_helpers::free_gamma_algebra>( std::forward<Range>( r ) );
+		return cxxmath::detail::coefficient_composer<type_helpers::free_gamma_algebra>::apply( std::forward<Range>( r ) );
 	}
 	
 	template<class Range> static auto to_gamma_range( Range &&r ) {
 		std::vector<gamma_matrix> gammas;
 		std::for_each( std::begin( r ), std::end( r ), [&] ( auto &&gm ) {
-			if constexpr( std::is_same_v<std::decay_t<decltype(gm)>, gamma_matrix> )
-				gammas.push_back( gm );
+			using type = std::decay_t<decltype(gm)>;
+			
+			if constexpr( cxxmath::is_std_variant_v<type> ) {
+				if constexpr( cxxmath::holds_alternative<gamma_matrix>( gm ) )
+					gammas.push_back( std::get<gamma_matrix>( gm ) );
+				else
+					throw std::runtime_error( "This does not happen!!!!" );
+			} else if constexpr( std::is_same_v<type, gamma_matrix> )
+				gammas.push_back( std::forward<decltype(gm)>( gm ) );
 			else
-				gammas.push_back( std::get<gamma_matrix>( gm ) );
+				throw std::runtime_error( "This does not happen!!!!" );
 		} );
 		return gammas;
 	}
 	
-	template<class Range, class IndexRange>
-	static type_helpers::free_gamma_algebra apply_impl( const gamma_matrix &, const Range &, const gamma_matrix &, const IndexRange & ) {
-		throw std::runtime_error( "Clifford quotient algebra should eliminate this possibility." );
-	}
-	
-	template<class Range, class IndexRange>
-	static type_helpers::free_gamma_algebra apply_impl( const gamma_matrix &, const Range &, const formal_metric_entry &, const IndexRange & ) {
-		throw std::runtime_error( "Coefficients should always precede the symbols in index contractions." );
-	}
-	
-	template<class Range, class IndexRange>
-	static type_helpers::free_gamma_algebra apply_impl( const formal_metric_entry &fme1, const Range &parts, const gamma_matrix &gm2, const IndexRange &indices ) {
-		gamma_matrix resulting_gamma;
-		
-		if( indices.size != 1 )
-			throw std::runtime_error( "indices size should be one" );
-		if( gm2.index == fme1.index1 )
-			resulting_gamma.index = fme1.index2;
-		else if( gm2.index == fme1.index2 )
-			resulting_gamma.index = fme1.index1;
-		else
-			throw std::runtime_error( "gm2/fme1 index mismatch" );
-		
-		auto it = std::find_if( std::begin( parts ), std::end( parts ), [] ( auto &&part ) {
-			return std::is_same_v<std::decay_t<decltype(part)>, gamma_matrix>;
-		} );
-		
-		auto coefficient = compose_coefficient( boost::make_iterator_range( std::begin( parts ), it ) );
-		auto gammas = to_gamma_range(
+	template<class FME, class Range, class GM, class IndexRange>
+	static type_helpers::free_gamma_algebra apply_impl( const FME &fme1, const Range &parts, const GM &gm2, const IndexRange &indices ) {
+		if constexpr( std::is_same_v<std::decay_t<FME>, formal_metric_entry> && std::is_same_v<std::decay_t<GM>, gamma_matrix> ) {
+			gamma_matrix resulting_gamma;
+			
+			if( std::size( indices ) != 1 )
+				throw std::runtime_error( "indices size should be one" );
+			if( gm2.index == fme1.index1 )
+				resulting_gamma.index = fme1.index2;
+			else if( gm2.index == fme1.index2 )
+				resulting_gamma.index = fme1.index1;
+			else
+				throw std::runtime_error( "gm2/fme1 index mismatch" );
+			
+			auto it = std::find_if( std::begin( parts ), std::end( parts ), [] ( auto &&part ) {
+				using type = std::decay_t<decltype(part)>;
+				
+				if constexpr( cxxmath::is_std_variant_v<type> )
+					return cxxmath::holds_alternative<gamma_matrix>( std::forward<decltype(part)>( part ) );
+				else
+					return std::is_same_v<part, gamma_matrix>;
+			} );
+			
+			auto coefficient = compose_coefficient( boost::make_iterator_range( std::begin( parts ), it ) );
+			auto gammas = to_gamma_range(
 			boost::join(
-				boost::make_iterator_range( it, std::end( parts ) ),
-				boost::make_iterator_range( &resulting_gamma, (&resulting_gamma) + 1 )
+			boost::make_iterator_range( it, std::end( parts ) ),
+			boost::make_iterator_range( &resulting_gamma, (&resulting_gamma) + 1 )
 			)
-		);
-		
-		return cxxmath::make<cxxmath::tag_of_t<type_helpers::free_gamma_algebra>>( std::move( coefficient ), std::move( gammas ) );
-	}
-	
-	template<class Range, class IndexRange>
-	static type_helpers::free_gamma_algebra apply_impl( const formal_metric_entry &, const Range &, const formal_metric_entry &, const IndexRange & ) {
-		throw std::runtime_error( "This contraction should be handled in formal_metric_index_handler::contract_indices." );
+			);
+			
+			return cxxmath::make<cxxmath::tag_of_t<type_helpers::free_gamma_algebra>>( std::move( coefficient ), std::move( gammas ) );
+		} else
+			throw std::runtime_error( "This should never happen!" );
 	}
 public:
 	template<class IndexedObject, class IndexRange>
@@ -317,7 +317,7 @@ public:
 	}
 	
 	template<class IndexedObject1, class Range, class IndexedObject2, class IndexRange>
-	static type_helpers::free_gamma_algebra apply( const IndexedObject1 &io1, const Range &parts, const IndexedObject2 &io2, const IndexRange &indices ) {
+	static auto apply( const IndexedObject1 &io1, const Range &parts, const IndexedObject2 &io2, const IndexRange &indices ) {
 		if constexpr( cxxmath::is_std_variant_v<IndexedObject1> )
 			return std::visit( [&] ( const auto &io ) { return apply( io, parts, io2, indices ); }, io1 );
 		else if constexpr( cxxmath::is_std_variant_v<IndexedObject1> )
@@ -333,7 +333,6 @@ auto euclidean_form::apply( const gamma_matrix &gm1, const gamma_matrix &gm2 ) {
 }
 }
 
-/*
 BOOST_AUTO_TEST_CASE( clifford_algebra_int )
 {
 	using namespace cxxmath;
@@ -347,6 +346,7 @@ BOOST_AUTO_TEST_CASE( clifford_algebra_int )
 	const auto gamma_3 = make<clifford_tag>( coefficient_one, gamma_matrix{ 3 } );
 	const auto gamma_4 = make<clifford_tag>( coefficient_one, gamma_matrix{ 4 } );
 	
+	/*
 	BOOST_TEST( gamma_1 * gamma_1 == one );
 	BOOST_TEST( gamma_2 * gamma_2 == one );
 	BOOST_TEST( gamma_3 * gamma_3 == one );
@@ -360,5 +360,5 @@ BOOST_AUTO_TEST_CASE( clifford_algebra_int )
 	BOOST_TEST( gamma_1 * gamma_2 * gamma_3 == gamma_2 * gamma_3 * gamma_1 );
 	BOOST_TEST( gamma_2 * gamma_1 * gamma_3 == - gamma_2 * gamma_3 * gamma_1 );
 	BOOST_TEST( gamma_1 * gamma_2 * gamma_1 == - gamma_2 );
+	*/
 }
- */

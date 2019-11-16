@@ -12,7 +12,7 @@
 
 #include "quotient_r_algebra.hpp"
 
-#include "helpers/is_std_variant.hpp"
+#include "helpers/std_variant.hpp"
 
 // TODO: Make everything independent on default_...<>
 
@@ -42,7 +42,7 @@ private:
 		template<class Arg>
 		constexpr type operator()( Arg &&arg ) const
 		{
-			return std::forward<Arg>;
+			return std::forward<Arg>( arg );
 		}
 	};
 
@@ -70,47 +70,37 @@ public:
 
 struct coefficient_decomposer
 {
-	template<class IndecomposableCoefficient, class = std::enable_if_t<
-		is_free_r_algebra_tag_v<tag_of_t<IndecomposableCoefficient>> == false
-	>> static auto apply( IndecomposableCoefficient &&c )
-	{
-		using value_type = std::decay_t<IndecomposableCoefficient>;
-		
-		return std::array<std::array<value_type, 1>, 1>{
-			std::array<value_type, 1>{ std::forward<IndecomposableCoefficient>( c ) }
-		};
-	}
-	
-	template<class QRA, class = std::enable_if_t<is_quotient_r_algebra_tag_v<tag_of_t<QRA>>>>
-	static auto apply( const QRA &qra ) {
-		return apply( qra.representative() );
-	}
-	
-	template<class FRA, class = std::enable_if_t<is_free_r_algebra_tag_v<tag_of_t<FRA>>>, class = void>
-	static auto apply( const FRA &fra )
-	{
-		using coefficient = typename tag_of_t<FRA>::coefficient;
-		using symbol = typename tag_of_t<FRA>::symbol;
-		
-		using atom = typename decltype(apply(std::declval<coefficient>()))::value_type::value_type;
-		using value_type = typename extend_variant<atom, symbol>::type;
-		std::vector<std::vector<value_type>> result;
-		
-		for( const auto &monomial : fra.monomials()) {
-			auto decomposed_coefficient = apply( monomial.second );
-			for( auto &&part : decomposed_coefficient ) {
-				std::vector<value_type> new_part;
-				new_part.reserve( std::size( part ) + std::size( monomial.first ) );
-				
-				for( auto &&element : part )
-					new_part.push_back( extend_variant<atom, symbol>::convert( std::move( element )));
-				new_part.insert( new_part.end(), std::begin( monomial.first ), std::end( monomial.first ));
-				
-				result.push_back( std::move( new_part ));
+	template<class Arg>
+	static auto apply( const Arg &arg ) {
+		if constexpr( is_quotient_r_algebra_tag_v<tag_of_t<Arg>> )
+			return apply( arg.representative() );
+		else if constexpr( is_free_r_algebra_tag_v<tag_of_t<Arg>> ) {
+			using coefficient = typename tag_of_t<Arg>::coefficient;
+			using symbol = typename tag_of_t<Arg>::symbol;
+			
+			using atom = typename decltype(apply(std::declval<coefficient>()))::value_type::value_type;
+			using value_type = typename extend_variant<atom, symbol>::type;
+			std::vector<std::vector<value_type>> result;
+			
+			for( const auto &monomial : arg.monomials()) {
+				auto decomposed_coefficient = apply( monomial.second );
+				for( auto &&part : decomposed_coefficient ) {
+					std::vector<value_type> new_part;
+					new_part.reserve( std::size( part ) + std::size( monomial.first ) );
+					
+					for( auto &&element : part )
+						new_part.push_back( extend_variant<atom, symbol>::convert( std::move( element )));
+					new_part.insert( new_part.end(), std::begin( monomial.first ), std::end( monomial.first ));
+					
+					result.push_back( std::move( new_part ));
+				}
 			}
+			
+			return result;
+		} else {
+			using value_type = std::decay_t<Arg>;
+			return std::array<std::array<value_type, 1>, 1>{ std::array<value_type, 1>{ arg } };
 		}
-		
-		return result;
 	}
 };
 
@@ -148,7 +138,7 @@ struct coefficient_composer
 	} */
 public:
 	template<class Range>
-	constexpr auto apply( Range &&parts ) const
+	static constexpr auto apply( Range &&parts )
 	{
 		if( std::size( parts ) != 1 )
 			throw std::runtime_error( "coefficient_composer: given range does not have precisely one part" );
