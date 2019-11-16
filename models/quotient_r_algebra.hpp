@@ -207,7 +207,7 @@ struct function { \
 		if constexpr( first_ ## function::commutes_with_quotient_map() ) \
 			return second_ ## function::apply( std::forward<Args>( args )... ); \
 		else \
-			return SecondQuotientSpec::quotient_map_in_place( first_ ## function::apply( std::forward<Args>( args )... ) ); \
+			return SecondQuotientSpec::quotient_map_in_place::apply( first_ ## function::apply( std::forward<Args>( args )... ) ); \
 	} \
 };
 

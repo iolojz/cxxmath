@@ -185,7 +185,7 @@ class coefficient_composer<free_r_algebra_tag<Coefficient, Symbol, CoefficientSe
 	{
 		if constexpr( is_std_variant_v<std::decay_t<S>> )
 			return std::visit( []( auto &&p ) { return extract_symbol( std::forward<decltype(p)>( p ) ); }, std::forward<S>( part ) );
-		else if constexpr( std::is_same_v<tag_of_t<C>, tag_of_t<Coefficient>> )
+		else if constexpr( std::is_same_v<tag_of_t<S>, tag_of_t<Symbol>> )
 			return std::forward<S>( part );
 		else
 			throw std::runtime_error( "attempt to extract symbol from coefficient" );
@@ -357,8 +357,8 @@ class abstract_index_quotient_spec
 			auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
 											 boost::make_iterator_range( ++s2_it, std::end( symbols ) ) );
 			
-			head *= std::move( *contracted );
-			head *= std::move( tail );
+			cxxmath::multiply_assign( head, std::move( *contracted ) );
+			cxxmath::multiply_assign( head, std::move( tail ) );
 			return quotient_map_in_place::apply( head );
 		}
 		
@@ -401,10 +401,10 @@ class abstract_index_quotient_spec
 			auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
 											 boost::make_iterator_range( ++s_it, std::end( symbols ) ) );
 			
-			scalar_multiply_assign( std::move( coefficient ), contracted );
-			contracted *= std::move( tail );
+			cxxmath::scalar_multiply_assign( std::move( coefficient ), *contracted );
+			cxxmath::multiply_assign( *contracted, std::move( tail ) );
 			
-			return quotient_map_in_place::apply( contracted );
+			return quotient_map_in_place::apply( *contracted );
 		}
 		
 		return std::nullopt;
@@ -471,10 +471,8 @@ public:
 			std::vector<typename FRA::monomial_container::value_type> new_monomials;
 			for( auto monomial = fra.monomials().begin(); monomial != fra.monomials().end(); ++monomial ) {
 				auto contraction_result = perform_ss_contractions<FRA>(
-					boost::make_iterator_range(
-						std::make_move_iterator( std::begin( monomial->first ) ),
-						std::make_move_iterator( std::end( monomial->first ) )
-					)
+					// FIXME: It would be nice, if we could use move_iterators here...
+					boost::make_iterator_range( std::begin( monomial->first ), std::end( monomial->first ) )
 				);
 				
 				if( contraction_result ) {

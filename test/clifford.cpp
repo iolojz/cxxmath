@@ -182,68 +182,77 @@ using clifford_quotient_spec = cxxmath::composed_quotients<
 
 using clifford = cxxmath::quotient_r_algebra<type_helpers::free_gamma_algebra, type_helpers::clifford_quotient_spec>;
 
-auto euclidean_form::apply( const gamma_matrix &gm1, const gamma_matrix &gm2 ) {
-	using coefficient_ring = typename cxxmath::tag_of_t<type_helpers::metric_entry_algebra>::coefficient_ring;
-	return cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>( coefficient_ring::one(), formal_metric_entry{ gm1.index, gm2.index } );
-}
-
-template<> class formal_metric_index_handler::contract_indices<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>> {
+template<> class formal_metric_index_handler::contract_indices<cxxmath::tag_of_t<type_helpers::free_metric_entry_algebra>> {
 	using d_int_polynomial_tag = cxxmath::tag_of_t<type_helpers::d_int_polynomial>;
-	using metric_entry_algebra_tag = cxxmath::tag_of_t<type_helpers::metric_entry_algebra>;
-	
-	template<class Range, class IndexRange>
-	static auto apply_impl( const formal_metric_entry &fme, const IndexRange &indices ) {
+	using free_metric_entry_algebra_tag = cxxmath::tag_of_t<type_helpers::free_metric_entry_algebra>;
+public:
+	template<class IndexRange>
+	static auto apply( const formal_metric_entry &fme, const IndexRange &indices ) {
 		if( std::size( indices ) != 1 )
 			throw std::runtime_error( "self-contraction of formal metric entry with size( indices ) != 1" );
 		
 		const auto &index = *std::begin( indices );
-		if( fme.index1 != index )
+		if( std::get<std::string_view>( fme.index1 ) != index )
 			throw std::runtime_error( "self-contraction of formal metric entry with mismatch in first index" );
-		else if( fme.index2 != index )
+		else if( std::get<std::string_view>( fme.index2 ) != index )
 			throw std::runtime_error( "self-contraction of formal metric entry with mismatch in second index" );
 		
 		auto result_coefficient = cxxmath::make<d_int_polynomial_tag>( 1, manifold_dimension{} );
-		return cxxmath::make<metric_entry_algebra_tag>( std::move( result_coefficient ) );
+		return cxxmath::make<free_metric_entry_algebra_tag>( std::move( result_coefficient ) );
 	}
 	
-	template<class Range, class IndexRange>
-	static auto apply_impl( const formal_metric_entry &fme1, const Range &parts, const formal_metric_entry &fme2, const IndexRange &indices ) {
-		auto coefficient_one = cxxmath::make<d_int_polynomial_tag>( 1 );
-		
-		if( std::size( indices ) == 1 ) {
-			auto result_coefficient = cxxmath::make<d_int_polynomial_tag>( 1 );
-			formal_metric_entry resulting_metric_entry;
+	template<class T, class Range, class IndexRange>
+	static auto apply( const T &t, const Range &parts, const formal_metric_entry &fme2, const IndexRange &indices ) {
+		if constexpr( std::is_same_v<std::decay_t<T>, formal_metric_entry> == false ) {
+			throw std::runtime_error( "We should never get here..." );
 			
-			if( fme1.index1 == fme2.index1 )
-				resulting_metric_entry = formal_metric_entry{ fme1.index2, fme2.index2 };
-			else if( fme1.index1 == fme2.index2 )
-				resulting_metric_entry = formal_metric_entry{ fme1.index2, fme2.index1 };
-			else if( fme1.index2 == fme2.index1 )
-				resulting_metric_entry = formal_metric_entry{ fme1.index1, fme2.index2 };
-			else if( fme1.index2 == fme2.index2 )
-				resulting_metric_entry = formal_metric_entry{ fme1.index1, fme2.index1 };
-			else
-				throw std::runtime_error( "cross-contraction(1) of formal metric entries with mismatching indices" );
+			// This is just for the compiler to be happy about the return type...
+			return std::make_optional(
+			cxxmath::make<free_metric_entry_algebra_tag>( cxxmath::make<d_int_polynomial_tag>( 0 ) )
+			);
+		} else {
+			const auto &fme1 = t;
+			auto coefficient_one = cxxmath::make<d_int_polynomial_tag>( 1 );
 			
-			auto metric_entries = boost::range::join(
+			if( std::size( indices ) == 1 ) {
+				auto result_coefficient = cxxmath::make<d_int_polynomial_tag>( 1 );
+				formal_metric_entry resulting_metric_entry;
+				
+				if( fme1.index1 == fme2.index1 )
+					resulting_metric_entry = formal_metric_entry{ fme1.index2, fme2.index2 };
+				else if( fme1.index1 == fme2.index2 )
+					resulting_metric_entry = formal_metric_entry{ fme1.index2, fme2.index1 };
+				else if( fme1.index2 == fme2.index1 )
+					resulting_metric_entry = formal_metric_entry{ fme1.index1, fme2.index2 };
+				else if( fme1.index2 == fme2.index2 )
+					resulting_metric_entry = formal_metric_entry{ fme1.index1, fme2.index1 };
+				else
+					throw std::runtime_error( "cross-contraction(1) of formal metric entries with mismatching indices" );
+				
+				auto metric_entries = boost::range::join(
 				boost::make_iterator_range( &resulting_metric_entry, (&resulting_metric_entry) + 1 ),
 				parts
-			);
+				);
+				
+				return std::make_optional(
+				cxxmath::make<free_metric_entry_algebra_tag>( std::move( coefficient_one ), std::move( metric_entries ) )
+				);
+			} else if( std::size( indices ) == 2 ) {
+				if( !(fme1.index1 == fme2.index1 && fme1.index2 == fme2.index2) && !(fme1.index1 == fme2.index2 && fme1.index2 == fme2.index1) )
+					throw std::runtime_error( "cross-contraction(2) of formal metric entries with mismatching indices" );
+				
+				auto result_coefficient = cxxmath::make<cxxmath::tag_of_t<type_helpers::d_int_polynomial>>( 1, manifold_dimension{} );
+				return std::make_optional(
+				cxxmath::make<free_metric_entry_algebra_tag>( std::move( result_coefficient ), parts )
+				);
+			}
 			
-			return cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>( std::move( coefficient_one ), std::move( metric_entries ) );
-		} else if( std::size( indices ) == 2 ) {
-			if( !(fme1.index1 == fme2.index1 && fme1.index2 == fme2.index2) && !(fme1.index1 == fme2.index2 && fme1.index2 == fme2.index1) )
-				throw std::runtime_error( "cross-contraction(2) of formal metric entries with mismatching indices" );
-			
-			auto result_coefficient = cxxmath::make<cxxmath::tag_of_t<type_helpers::d_int_polynomial>>( 1, manifold_dimension{} );
-			return cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>( std::move( result_coefficient ), parts );
+			throw std::runtime_error( "cross-contraction of formal metric entries with size( indices ) != 1 and != 2" );
 		}
-		
-		throw std::runtime_error( "cross-contraction of formal metric entries with size( indices ) != 1 and != 2" );
 	}
 };
 
-template<> class gamma_index_handler::contract_indices<cxxmath::tag_of_t<clifford>> {
+template<> class gamma_index_handler::contract_indices<cxxmath::tag_of_t<type_helpers::free_gamma_algebra>> {
 	template<class Range> static decltype(auto) compose_coefficient( Range &&r ) {
 		return cxxmath::detail::coefficient_composer<type_helpers::free_gamma_algebra>( std::forward<Range>( r ) );
 	}
@@ -260,17 +269,17 @@ template<> class gamma_index_handler::contract_indices<cxxmath::tag_of_t<cliffor
 	}
 	
 	template<class Range, class IndexRange>
-	static clifford apply_impl( const gamma_matrix &, const Range &, const gamma_matrix &, const IndexRange & ) {
+	static type_helpers::free_gamma_algebra apply_impl( const gamma_matrix &, const Range &, const gamma_matrix &, const IndexRange & ) {
 		throw std::runtime_error( "Clifford quotient algebra should eliminate this possibility." );
 	}
 	
 	template<class Range, class IndexRange>
-	static clifford apply_impl( const gamma_matrix &, const Range &, const formal_metric_entry &, const IndexRange & ) {
+	static type_helpers::free_gamma_algebra apply_impl( const gamma_matrix &, const Range &, const formal_metric_entry &, const IndexRange & ) {
 		throw std::runtime_error( "Coefficients should always precede the symbols in index contractions." );
 	}
 	
 	template<class Range, class IndexRange>
-	static clifford apply_impl( const formal_metric_entry &fme1, const Range &parts, const gamma_matrix &gm2, const IndexRange &indices ) {
+	static type_helpers::free_gamma_algebra apply_impl( const formal_metric_entry &fme1, const Range &parts, const gamma_matrix &gm2, const IndexRange &indices ) {
 		gamma_matrix resulting_gamma;
 		
 		if( indices.size != 1 )
@@ -294,31 +303,37 @@ template<> class gamma_index_handler::contract_indices<cxxmath::tag_of_t<cliffor
 			)
 		);
 		
-		return cxxmath::make<cxxmath::tag_of_t<clifford>>( std::move( coefficient ), std::move( gammas ) );
+		return cxxmath::make<cxxmath::tag_of_t<type_helpers::free_gamma_algebra>>( std::move( coefficient ), std::move( gammas ) );
 	}
 	
 	template<class Range, class IndexRange>
-	static clifford apply_impl( const formal_metric_entry &, const Range &, const formal_metric_entry &, const IndexRange & ) {
+	static type_helpers::free_gamma_algebra apply_impl( const formal_metric_entry &, const Range &, const formal_metric_entry &, const IndexRange & ) {
 		throw std::runtime_error( "This contraction should be handled in formal_metric_index_handler::contract_indices." );
 	}
 public:
 	template<class IndexedObject, class IndexRange>
-	static clifford apply( const IndexedObject &, const IndexRange & ) {
+	static std::optional<type_helpers::free_gamma_algebra> apply( const IndexedObject &, const IndexRange & ) {
 		throw std::runtime_error( "A self-contraction of a gamma matrix is impossible." );
 	}
 	
 	template<class IndexedObject1, class Range, class IndexedObject2, class IndexRange>
-	static clifford apply( const IndexedObject1 &io1, const Range &parts, const IndexedObject2 &io2, const IndexRange &indices ) {
+	static type_helpers::free_gamma_algebra apply( const IndexedObject1 &io1, const Range &parts, const IndexedObject2 &io2, const IndexRange &indices ) {
 		if constexpr( cxxmath::is_std_variant_v<IndexedObject1> )
 			return std::visit( [&] ( const auto &io ) { return apply( io, parts, io2, indices ); }, io1 );
 		else if constexpr( cxxmath::is_std_variant_v<IndexedObject1> )
 			return std::visit( [&] ( const auto &io ) { return apply( io1, parts, io, indices ); }, io2 );
 		else
-			return apply_impl( io1, parts, io2, indices );
+			return std::make_optional( apply_impl( io1, parts, io2, indices ) );
 	}
 };
+
+auto euclidean_form::apply( const gamma_matrix &gm1, const gamma_matrix &gm2 ) {
+	using coefficient_ring = typename cxxmath::tag_of_t<type_helpers::metric_entry_algebra>::coefficient_ring;
+	return cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>( coefficient_ring::one(), formal_metric_entry{ gm1.index, gm2.index } );
+}
 }
 
+/*
 BOOST_AUTO_TEST_CASE( clifford_algebra_int )
 {
 	using namespace cxxmath;
@@ -346,3 +361,4 @@ BOOST_AUTO_TEST_CASE( clifford_algebra_int )
 	BOOST_TEST( gamma_2 * gamma_1 * gamma_3 == - gamma_2 * gamma_3 * gamma_1 );
 	BOOST_TEST( gamma_1 * gamma_2 * gamma_1 == - gamma_2 );
 }
+ */
