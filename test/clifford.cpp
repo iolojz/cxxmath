@@ -254,25 +254,7 @@ public:
 
 template<> class gamma_index_handler::contract_indices<cxxmath::tag_of_t<type_helpers::free_gamma_algebra>> {
 	template<class Range> static decltype(auto) compose_coefficient( Range &&r ) {
-		return cxxmath::detail::coefficient_composer<type_helpers::free_gamma_algebra>::apply( std::forward<Range>( r ) );
-	}
-	
-	template<class Range> static auto to_gamma_range( Range &&r ) {
-		std::vector<gamma_matrix> gammas;
-		std::for_each( std::begin( r ), std::end( r ), [&] ( auto &&gm ) {
-			using type = std::decay_t<decltype(gm)>;
-			
-			if constexpr( cxxmath::is_std_variant_v<type> ) {
-				if constexpr( cxxmath::holds_alternative<gamma_matrix>( gm ) )
-					gammas.push_back( std::get<gamma_matrix>( gm ) );
-				else
-					throw std::runtime_error( "This does not happen!!!!" );
-			} else if constexpr( std::is_same_v<type, gamma_matrix> )
-				gammas.push_back( std::forward<decltype(gm)>( gm ) );
-			else
-				throw std::runtime_error( "This does not happen!!!!" );
-		} );
-		return gammas;
+		return cxxmath::detail::coefficient_composer<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>::apply( std::forward<Range>( r ) );
 	}
 	
 	template<class FME, class Range, class GM, class IndexRange>
@@ -289,24 +271,8 @@ template<> class gamma_index_handler::contract_indices<cxxmath::tag_of_t<type_he
 			else
 				throw std::runtime_error( "gm2/fme1 index mismatch" );
 			
-			auto it = std::find_if( std::begin( parts ), std::end( parts ), [] ( auto &&part ) {
-				using type = std::decay_t<decltype(part)>;
-				
-				if constexpr( cxxmath::is_std_variant_v<type> )
-					return cxxmath::holds_alternative<gamma_matrix>( std::forward<decltype(part)>( part ) );
-				else
-					return std::is_same_v<part, gamma_matrix>;
-			} );
-			
-			auto coefficient = compose_coefficient( boost::make_iterator_range( std::begin( parts ), it ) );
-			auto gammas = to_gamma_range(
-			boost::join(
-			boost::make_iterator_range( it, std::end( parts ) ),
-			boost::make_iterator_range( &resulting_gamma, (&resulting_gamma) + 1 )
-			)
-			);
-			
-			return cxxmath::make<cxxmath::tag_of_t<type_helpers::free_gamma_algebra>>( std::move( coefficient ), std::move( gammas ) );
+			auto coefficient = compose_coefficient( boost::make_iterator_range( std::begin( parts ), std::end( parts ) ) );
+			return cxxmath::make<cxxmath::tag_of_t<type_helpers::free_gamma_algebra>>( std::move( coefficient ), std::move( resulting_gamma ) );
 		} else
 			throw std::runtime_error( "This should never happen!" );
 	}

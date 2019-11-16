@@ -376,10 +376,8 @@ class abstract_index_quotient_spec
 			auto cpart_it = current.first;
 			auto s_it = current.second;
 			
-			auto middle = boost::range::join(
-				boost::make_iterator_range( std::next( cpart_it ), std::end( cparts ) ),
-				boost::make_iterator_range( std::begin( symbols ), s_it )
-			);
+			auto middle = boost::make_iterator_range( std::next( cpart_it ), std::end( cparts ) );
+			auto preceeding_symbols = boost::make_iterator_range( std::begin( symbols ), s_it );
 			
 			auto contracted = IndexHandler::template contract_indices<tag_of_t<FRA>>::apply( *cpart_it, std::move( middle ), *s_it, std::move( common_indices ));
 			if( contracted == std::nullopt )
@@ -388,13 +386,14 @@ class abstract_index_quotient_spec
 			auto coefficient = detail::coefficient_composer<tag_of_t<typename FRA::coefficient>>::apply(
 				boost::make_iterator_range( std::begin( cparts ), cpart_it )
 			);
+			auto head = make<tag_of_t<FRA>>( std::move( coefficient ), std::move( preceeding_symbols ) );
 			auto tail = make<tag_of_t<FRA>>( FRA::coefficient_ring::one(),
 											 boost::make_iterator_range( ++s_it, std::end( symbols ) ) );
 			
-			cxxmath::scalar_multiply_assign( std::move( coefficient ), *contracted );
-			cxxmath::multiply_assign( *contracted, std::move( tail ) );
+			cxxmath::multiply_assign( head, std::move( *contracted ) );
+			cxxmath::multiply_assign( head, std::move( tail ) );
 			
-			return quotient_map_in_place::apply( *contracted );
+			return quotient_map_in_place::apply( head );
 		}
 		
 		return std::nullopt;
