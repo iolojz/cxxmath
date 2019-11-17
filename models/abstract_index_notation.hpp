@@ -291,6 +291,8 @@ class abstract_index_quotient_spec
 					auto self_intersection = index_intersection( r1_indices_moved );
 					if( self_intersection.size() != 0 )
 						return std::make_tuple( begin.first, begin.first, std::move( self_intersection ));
+					
+					continue;
 				}
 			}
 			

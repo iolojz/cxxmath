@@ -55,7 +55,7 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 			using algebra = typename model_free_r_algebra::free_r_algebra_concepts<tag_of_t<FRA1>>::algebra;
 			
 			algebra::add_assign( fra1, std::forward<FRA2>( fra2 ) );
-			return quotient_map_in_place( fra1 );
+			return quotient_map_in_place::apply( fra1 );
 		}
 	};
 

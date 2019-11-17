@@ -119,19 +119,21 @@ struct formal_metric_index_handler {
 	using less_indices = cxxmath::impl::less_manifold_indices;
 	
 	struct extract_indices {
-		static auto apply(const formal_metric_entry &fme) {
-			std::vector<std::string_view> open_indices;
-			
-			if(std::holds_alternative<std::string_view>(fme.index1))
-				open_indices.push_back(std::get<std::string_view>(fme.index1));
-			if(std::holds_alternative<std::string_view>(fme.index2))
-				open_indices.push_back(std::get<std::string_view>(fme.index2));
-			
-			return open_indices;
-		}
-		
 		template<class T>
-		static constexpr std::array<std::string_view, 0> apply(T &&) { return {}; }
+		static constexpr auto apply( T &&t ) {
+			if constexpr( std::is_same_v<cxxmath::tag_of_t<T>, cxxmath::tag_of_t<formal_metric_entry>> ) {
+				const formal_metric_entry &fme = t;
+				std::vector<std::string_view> open_indices;
+				
+				if(std::holds_alternative<std::string_view>(fme.index1))
+					open_indices.push_back(std::get<std::string_view>(fme.index1));
+				if(std::holds_alternative<std::string_view>(fme.index2))
+					open_indices.push_back(std::get<std::string_view>(fme.index2));
+				
+				return open_indices;
+			} else
+				return std::array<std::string_view, 0>{};
+		}
 	};
 	
 	template<class AlgebraTag>
@@ -142,16 +144,18 @@ struct gamma_index_handler {
 	using less_indices = cxxmath::impl::less_manifold_indices;
 	
 	struct extract_indices {
-		static std::vector<std::string_view> apply(const gamma_matrix &gm) {
-			if(std::holds_alternative<std::string_view>(gm.index))
-				return { std::get<std::string_view>( gm.index ) };
-			
-			return {};
-		}
-		
 		template<class T>
 		static constexpr auto apply(T &&t) {
-			return formal_metric_index_handler::extract_indices::apply( std::forward<T>( t ) );
+			if constexpr( std::is_same_v<cxxmath::tag_of_t<T>, cxxmath::tag_of_t<gamma_matrix>> ) {
+				const gamma_matrix &gm = t;
+				if(std::holds_alternative<std::string_view>(gm.index))
+					return std::vector<std::string_view>{ std::get<std::string_view>( gm.index ) };
+				
+				return std::vector<std::string_view>{};
+			} else if constexpr( cxxmath::is_std_variant_v<T> )
+				return std::visit( [] ( auto &&r ) { return apply( std::forward<decltype(r)>( r ) ); }, std::forward<T>( t ) );
+			else
+				return formal_metric_index_handler::extract_indices::apply( std::forward<T>( t ) );
 		}
 	};
 	
@@ -295,7 +299,30 @@ public:
 
 auto euclidean_form::apply( const gamma_matrix &gm1, const gamma_matrix &gm2 ) {
 	using coefficient_ring = typename cxxmath::tag_of_t<type_helpers::metric_entry_algebra>::coefficient_ring;
-	return cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>( coefficient_ring::one(), formal_metric_entry{ gm1.index, gm2.index } );
+	
+	if( std::holds_alternative<int>( gm1.index ) ) {
+		if( std::holds_alternative<int>( gm2.index ) ) {
+			if( std::get<int>( gm1.index ) == std::get<int>( gm2.index ) )
+				return cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>( coefficient_ring::one() );
+			else
+				return cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>( coefficient_ring::zero() );
+		}
+	} else if( std::holds_alternative<std::string_view>( gm2.index ) ) {
+		if( std::get<std::string_view>( gm1.index ) == std::get<std::string_view>( gm2.index ) ) {
+			return cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>(
+			cxxmath::make<cxxmath::tag_of_t<type_helpers::d_int_polynomial>>( 1, manifold_dimension{} )
+			);
+		}
+	}
+	
+	if( gm1.index < gm2.index )
+		return cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>(
+			coefficient_ring::one(), formal_metric_entry{ gm1.index, gm2.index }
+		);
+	else
+		return cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>(
+		coefficient_ring::one(), formal_metric_entry{ gm2.index, gm1.index }
+		);
 }
 }
 
@@ -305,16 +332,42 @@ BOOST_AUTO_TEST_CASE( clifford_algebra_int )
 	using clifford_tag = tag_of_t<clifford>;
 	
 	const auto coefficient_one = clifford_tag::coefficient_ring::one();
+	const auto coefficient_d = cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>(
+	cxxmath::make<cxxmath::tag_of_t<type_helpers::d_int_polynomial>>( 1, manifold_dimension{} )
+	);
 	const auto one = default_ring_t<clifford_tag>::one();
+	const auto two = one + one;
+	const auto d = make<clifford_tag>( coefficient_d );
 	
 	const auto gamma_1 = make<clifford_tag>( coefficient_one, gamma_matrix{ 1 } );
 	const auto gamma_2 = make<clifford_tag>( coefficient_one, gamma_matrix{ 2 } );
 	const auto gamma_3 = make<clifford_tag>( coefficient_one, gamma_matrix{ 3 } );
 	const auto gamma_4 = make<clifford_tag>( coefficient_one, gamma_matrix{ 4 } );
 	
+	const auto gamma_mu = make<clifford_tag>( coefficient_one, gamma_matrix{ "mu" } );
+	const auto gamma_nu = make<clifford_tag>( coefficient_one, gamma_matrix{ "nu" } );
+	
+	const auto gamma_mu_gamma_nu = make<clifford_tag>( coefficient_one, gamma_matrix{ "mu" }, gamma_matrix{ "nu" } );
+	
+	const auto delta_mu_nu = make<clifford_tag>( cxxmath::make<cxxmath::tag_of_t<type_helpers::metric_entry_algebra>>(
+	cxxmath::make<cxxmath::tag_of_t<type_helpers::d_int_polynomial>>( 1 ),
+	formal_metric_entry{ "mu", "nu" }
+	) );
+	
 	BOOST_TEST( gamma_1 * gamma_1 == one );
 	BOOST_TEST( gamma_2 * gamma_2 == one );
 	BOOST_TEST( gamma_3 * gamma_3 == one );
+	
+	BOOST_TEST( gamma_mu * gamma_nu == gamma_mu_gamma_nu );
+	BOOST_TEST( gamma_nu * gamma_mu == two * delta_mu_nu - gamma_mu_gamma_nu );
+	BOOST_TEST( delta_mu_nu * delta_mu_nu == d );
+	BOOST_TEST( delta_mu_nu * gamma_mu * gamma_nu == d );
+	BOOST_TEST( delta_mu_nu * gamma_nu * gamma_mu == d );
+	
+	std::cout << delta_mu_nu << std::endl;
+	std::cout << delta_mu_nu * gamma_nu << std::endl;
+	std::cout << gamma_mu * gamma_nu << std::endl;
+	std::cout << delta_mu_nu * gamma_mu * gamma_nu << std::endl;
 	
 	BOOST_TEST( gamma_1 * gamma_2 != - gamma_1 * gamma_2 );
 	BOOST_TEST( gamma_1 * gamma_2 != gamma_2 * gamma_1 );
