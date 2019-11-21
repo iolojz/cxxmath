@@ -118,24 +118,6 @@ struct select_type_with_tag<Tag, Type1, Alternatives...>
 template<class CoefficientTag>
 struct coefficient_composer
 {
-	template<class C, CXXMATH_ENABLE_IF_TAG_IS( C, tag_of_t<CoefficientTag> ) >
-	static constexpr auto extract_coefficient( C &&part )
-	{ return std::forward<C>( part ); }
-	
-	/* TODO: remove this
-	template<class ...Alternatives>
-	static constexpr decltype( auto ) extract_coefficient( const std::variant<Alternatives...> &part )
-	{
-		using type = typename select_type_with_tag<CoefficientTag, Alternatives...>::type;
-		return std::get<type>( part );
-	}
-	
-	template<class ...Alternatives>
-	static constexpr decltype( auto ) extract_coefficient( std::variant<Alternatives...> &&part )
-	{
-		using type = typename select_type_with_tag<CoefficientTag, Alternatives...>::type;
-		return std::get<type>( std::move( part ));
-	} */
 public:
 	template<class Range>
 	static constexpr auto apply( Range &&parts )
@@ -152,6 +134,7 @@ public:
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
 class coefficient_composer<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>>
 {
+	// TODO: This is completely broken! Add support for arbitrary Coefficients/Symbols and nested r_(quotient_)algebras
 	using r_algebra_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 	
 	template<class Part> static constexpr bool is_coefficient( const Part &part ) {
@@ -185,7 +168,7 @@ public:
 	static auto apply( Range &&parts )
 	{
 		if( std::size( parts ) == 0 )
-			throw std::runtime_error( "coefficient_composer: given range is empty" );
+			return make<r_algebra_tag>( CoefficientRing::one() );
 		
 		if( is_coefficient( *std::begin( parts ) ) ) {
 			auto coefficient = make<tag_of_t<Coefficient>>( extract_coefficient( *std::begin(parts) ) );
@@ -255,15 +238,18 @@ class abstract_index_quotient_spec
 	
 	template<bool disjoint, class IteratorPair, class Range1, class Range2>
 	static IteratorPair &advance_iterator_pair( IteratorPair &iterator_pair, Range1 &&r1, Range2 &&r2 ) {
-		if( iterator_pair.second == std::end( r2 ) ) {
+		if( ++(iterator_pair.second) == std::end( r2 ) ) {
 			++(iterator_pair.first);
 			
-			if constexpr( disjoint )
-				iterator_pair.second = std::begin( r2 );
+			if constexpr( disjoint ) {
+				if( iterator_pair.first == std::end( r1 ) )
+					iterator_pair.second = std::end( r2 );
+				else
+					iterator_pair.second = std::begin( r2 );
+			}
 			else
 				iterator_pair.second = iterator_pair.first;
-		} else
-			++(iterator_pair.second);
+		}
 		
 		return iterator_pair;
 	};

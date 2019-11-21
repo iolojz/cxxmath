@@ -131,8 +131,10 @@ struct formal_metric_index_handler {
 					open_indices.push_back(std::get<std::string_view>(fme.index2));
 				
 				return open_indices;
-			} else
-				return std::array<std::string_view, 0>{};
+			} else if constexpr( cxxmath::is_std_variant_v<std::decay_t<T>> )
+				return std::visit( [] ( auto &&r ) { return apply( std::forward<decltype(r)>( r ) ); }, std::forward<T>( t ) );
+			else
+				return std::vector<std::string_view>{};
 		}
 	};
 	
@@ -152,7 +154,7 @@ struct gamma_index_handler {
 					return std::vector<std::string_view>{ std::get<std::string_view>( gm.index ) };
 				
 				return std::vector<std::string_view>{};
-			} else if constexpr( cxxmath::is_std_variant_v<T> )
+			} else if constexpr( cxxmath::is_std_variant_v<std::decay_t<T>> )
 				return std::visit( [] ( auto &&r ) { return apply( std::forward<decltype(r)>( r ) ); }, std::forward<T>( t ) );
 			else
 				return formal_metric_index_handler::extract_indices::apply( std::forward<T>( t ) );
