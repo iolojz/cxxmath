@@ -1,6 +1,16 @@
-//
-// Created by jayz on 27.09.19.
-//
+/** \defgroup concepts Concepts
+ * \brief These are the mathematical concepts that are modelled by cxxmath
+ * \{
+ *
+ * \file concepts/boolean_lattice.hpp
+ * \brief The abstract concept of a boolean lattice over a set \f$ B \f$, as defined by
+ * - \f$ and_ : B \times B \to B \f$
+ * - \f$ or_ : B \times B \to B \f$
+ * - \f$ not_ : B \to B \f$
+ * where \f$ and_ \f$ and \f$ or_ \f$ are associative, commutative, distribute over
+ * each other and are connected by the absorption law. Furthermore, we require \f$ B \f$
+ * to contain two distinguished elements \f$ false_ \f$ and \f$ true_ \f$.
+ */
 
 #ifndef CXXMATH_CONCEPTS_BOOLEAN_LATTICE_HPP
 #define CXXMATH_CONCEPTS_BOOLEAN_LATTICE_HPP
@@ -43,3 +53,5 @@ CXXMATH_DEFINE_DEFAULT_DISPATCHED_UNARY_OPERATOR( !, not_ )
 }
 
 #endif //CXXMATH_CONCEPTS_BOOLEAN_ALGEBRA_HPP
+
+/** \} */
