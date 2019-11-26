@@ -27,6 +27,23 @@ static constexpr bool holds_alternative( const std::variant<Alternatives...> &v 
 	else
 		return false;
 }
+
+template<class Tag, class Variant> struct select_type_with_tag {};
+CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE(select_type_with_tag)
+
+namespace detail {
+template<bool, class Tag, class T, class ...Alternatives> struct select_type_with_tag {
+	using type = select_type_with_tag_t<Tag, std::variant<Alternatives...>>;
+};
+
+template<class Tag, class T, class ...Alternatives> struct select_type_with_tag<true, Tag, T, Alternatives...> {
+	using type = T;
+};
+}
+
+template<class Tag, class Type1, class ...Alternatives>
+struct select_type_with_tag<Tag, std::variant<Type1, Alternatives...>>
+: detail::select_type_with_tag<std::is_same_v<Tag, tag_of_t<Type1>>, Tag, Type1, Alternatives...> {};
 }
 
 #endif //CXXMATH_HELPERS_STD_VARIANT_HPP

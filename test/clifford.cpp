@@ -120,7 +120,7 @@ struct formal_metric_index_handler {
 	
 	struct extract_indices {
 		template<class T>
-		static constexpr auto apply( T &&t ) {
+		static auto apply( T &&t ) {
 			if constexpr( std::is_same_v<cxxmath::tag_of_t<T>, cxxmath::tag_of_t<formal_metric_entry>> ) {
 				const formal_metric_entry &fme = t;
 				std::vector<std::string_view> open_indices;
@@ -365,11 +365,6 @@ BOOST_AUTO_TEST_CASE( clifford_algebra_int )
 	BOOST_TEST( delta_mu_nu * delta_mu_nu == d );
 	BOOST_TEST( delta_mu_nu * gamma_mu * gamma_nu == d );
 	BOOST_TEST( delta_mu_nu * gamma_nu * gamma_mu == d );
-	
-	std::cout << delta_mu_nu << std::endl;
-	std::cout << delta_mu_nu * gamma_nu << std::endl;
-	std::cout << gamma_mu * gamma_nu << std::endl;
-	std::cout << delta_mu_nu * gamma_mu * gamma_nu << std::endl;
 	
 	BOOST_TEST( gamma_1 * gamma_2 != - gamma_1 * gamma_2 );
 	BOOST_TEST( gamma_1 * gamma_2 != gamma_2 * gamma_1 );

@@ -8,6 +8,7 @@
 #include <variant>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/join.hpp>
+#include <boost/range/sub_range.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include "quotient_r_algebra.hpp"
@@ -104,17 +105,6 @@ struct coefficient_decomposer
 	}
 };
 
-template<class Tag, class ...Alternatives>
-struct select_type_with_tag
-{
-};
-
-template<class Tag, class Type1, class ...Alternatives>
-struct select_type_with_tag<Tag, Type1, Alternatives...>
-{
-	using type = std::conditional_t<std::is_same_v<Tag, tag_of_t<Type1>>, Type1, typename select_type_with_tag<Tag, Alternatives...>::type>;
-};
-
 template<class CoefficientTag>
 struct coefficient_composer
 {
@@ -124,34 +114,31 @@ public:
 	{
 		if( std::size( parts ) != 1 )
 			throw std::runtime_error( "coefficient_composer: given range does not have precisely one part" );
-		if( std::is_same_v<CoefficientTag, tag_of_t<decltype(*std::begin( parts ))>> == false )
-			throw std::runtime_error( "coefficient_composer: tag mismatch in given range" );
 		
-		return *std::begin( parts );
+		auto &&cpart = *std::begin( parts );
+		using cpart_t = std::decay_t<decltype(cpart)>;
+		
+		if constexpr( is_std_variant_v<cpart_t> ) {
+			return std::get<select_type_with_tag_t<CoefficientTag, tag_of_t<cpart_t>>>( cpart );
+		} else {
+			if( std::is_same_v<CoefficientTag, tag_of_t<cpart_t>> == false )
+				throw std::runtime_error( "coefficient_composer: tag mismatch in given range" );
+			
+			return cpart;
+		}
 	}
 };
 
 template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
 class coefficient_composer<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>>
 {
-	// TODO: This is completely broken! Add support for arbitrary Coefficients/Symbols and nested r_(quotient_)algebras
 	using r_algebra_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
 	
-	template<class Part> static constexpr bool is_coefficient( const Part &part ) {
+	template<class Part> static constexpr bool is_symbol( const Part &part ) {
 		if constexpr( is_std_variant_v<std::decay_t<Part>> )
-			return std::visit( []( const auto &p ) { return is_coefficient( p ); }, part );
+			return std::visit( []( const auto &p ) { return is_symbol( p ); }, part );
 		else
-			return std::is_same_v<tag_of_t<Part>, tag_of_t<Coefficient>>;
-	}
-	
-	template<class C> static Coefficient extract_coefficient( C &&part )
-	{
-		if constexpr( is_std_variant_v<std::decay_t<C>> )
-			return std::visit( []( auto &&p ) { return extract_coefficient( std::forward<decltype(p)>( p ) ); }, std::forward<C>( part ) );
-		else if constexpr( std::is_same_v<tag_of_t<C>, tag_of_t<Coefficient>> )
-			return std::forward<C>( part );
-		else
-			throw std::runtime_error( "attempt to extract coefficient from symbol" );
+			return std::is_same_v<tag_of_t<Part>, tag_of_t<Symbol>>;
 	}
 	
 	template<class S> static Symbol extract_symbol( S &&part )
@@ -165,31 +152,26 @@ class coefficient_composer<free_r_algebra_tag<Coefficient, Symbol, CoefficientSe
 	}
 public:
 	template<class Range>
-	static auto apply( Range &&parts )
+	static decltype(auto) apply( Range &&parts )
 	{
-		if( std::size( parts ) == 0 )
-			return make<r_algebra_tag>( CoefficientRing::one() );
-		
-		if( is_coefficient( *std::begin( parts ) ) ) {
-			auto coefficient = make<tag_of_t<Coefficient>>( extract_coefficient( *std::begin(parts) ) );
-			return make<r_algebra_tag>( std::move( coefficient ),
-				boost::make_iterator_range(
-					std::next( std::begin( parts ) ),
-					std::end( parts )
-				) | boost::adaptors::transformed( []( auto &&p ) {
-					return extract_symbol( std::forward<decltype(p)>( p ) );
-				} )
-			);
-		}
-		
-		return make<r_algebra_tag>( CoefficientRing::one(),
-			boost::make_iterator_range(
-				std::begin( parts ),
-				std::end( parts )
-			) | boost::adaptors::transformed( []( auto &&p ) {
-				return extract_symbol( std::forward<decltype(p)>( p ) );
-			} )
+		auto rend_symbols = std::find_if(
+			std::make_reverse_iterator( std::end( parts ) ),
+			std::make_reverse_iterator( std::begin( parts ) ),
+			[] ( const auto &part ) { return !is_symbol( part ); }
 		);
+		auto begin_symbols = rend_symbols.base();
+		
+		auto cparts = boost::sub_range<std::decay_t<Range>>( std::begin( parts ), begin_symbols );
+		auto symbols = boost::sub_range<std::decay_t<Range>>( begin_symbols, std::end( parts ) ) |
+			boost::adaptors::transformed( []( auto &&p ) {
+			return extract_symbol( std::forward<decltype(p)>( p ) );
+		} );
+		
+		if( std::size( cparts ) == 0 )
+			return make<r_algebra_tag>( CoefficientRing::one(), std::move( symbols ) );
+		
+		auto coefficient = coefficient_composer<tag_of_t<Coefficient>>::apply( std::move( cparts ) );
+		return make<r_algebra_tag>( std::move( coefficient ), std::move( symbols ) );
 	}
 };
 
