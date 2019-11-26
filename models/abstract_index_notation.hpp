@@ -15,8 +15,6 @@
 
 #include "helpers/std_variant.hpp"
 
-// TODO: Make everything independent on default_...<>
-
 namespace cxxmath
 {
 namespace detail
@@ -427,6 +425,9 @@ public:
 		template<class FRA>
 		static FRA &apply( FRA &fra )
 		{
+			static_assert( is_std_variant_v<typename tag_of_t<FRA>::symbol> == false, "Abstract index notation cannot work with std::variants" );
+			static_assert( is_std_variant_v<typename tag_of_t<FRA>::coefficient> == false, "Abstract index notation cannot work with std::variants" );
+			
 			std::vector<typename FRA::monomial_container::value_type> new_monomials;
 			for( auto monomial = fra.monomials().begin(); monomial != fra.monomials().end(); ++monomial ) {
 				auto contraction_result = perform_ss_contractions<FRA>(
