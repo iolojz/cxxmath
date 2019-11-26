@@ -5,12 +5,12 @@
 #ifndef CXXMATH_MODELS_FUNCTION_OBJECT_HPP
 #define CXXMATH_MODELS_FUNCTION_OBJECT_HPP
 
-#include "concepts/monoid_fwd.hpp"
+#include "../concepts/monoid_fwd.hpp"
 
-#include "core/concepts.hpp"
-#include "core/dispatch_tags.hpp"
+#include "../core/concepts.hpp"
+#include "../core/dispatch_tags.hpp"
 
-#include "helpers/boolean_v.hpp"
+#include "../helpers/boolean_v.hpp"
 
 namespace cxxmath
 {

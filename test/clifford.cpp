@@ -6,7 +6,7 @@
 
 #include <boost/test/included/unit_test.hpp>
 
-#include "cxxmath.hpp"
+#include "../cxxmath.hpp"
 
 namespace {
 struct gamma_matrix {

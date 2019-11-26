@@ -13,7 +13,7 @@
 
 #include "quotient_r_algebra.hpp"
 
-#include "helpers/std_variant.hpp"
+#include "../helpers/std_variant.hpp"
 
 namespace cxxmath
 {

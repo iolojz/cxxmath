@@ -5,8 +5,8 @@
 #ifndef CXXMATH_CONCEPTS_TOTAL_ORDER_HPP
 #define CXXMATH_CONCEPTS_TOTAL_ORDER_HPP
 
-#include "core/concepts.hpp"
-#include "models/function_object.hpp"
+#include "../core/concepts.hpp"
+#include "../models/function_object.hpp"
 
 namespace cxxmath
 {

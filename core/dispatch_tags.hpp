@@ -5,8 +5,8 @@
 #ifndef CXXMATH_CORE_DISPATCH_TAGS_HPP
 #define CXXMATH_CORE_DISPATCH_TAGS_HPP
 
-#include "helpers/has_member_type.hpp"
-#include "helpers/wrap_template_members.hpp"
+#include "../helpers/has_member_type.hpp"
+#include "../helpers/wrap_template_members.hpp"
 
 namespace cxxmath
 {

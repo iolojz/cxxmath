@@ -5,8 +5,8 @@
 #ifndef CXXMATH_CONCEPTS_GROUP_HPP
 #define CXXMATH_CONCEPTS_GROUP_HPP
 
-#include "models/function_object.hpp"
-#include "core/operator_helpers.hpp"
+#include "../models/function_object.hpp"
+#include "../core/operator_helpers.hpp"
 
 namespace cxxmath
 {

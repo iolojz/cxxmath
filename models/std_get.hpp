@@ -5,7 +5,7 @@
 #ifndef CXXMATH_MODELS_STD_GET_HPP
 #define CXXMATH_MODELS_STD_GET_HPP
 
-#include "concepts/product.hpp"
+#include "../concepts/product.hpp"
 
 #include "std_pair.hpp"
 

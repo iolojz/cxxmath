@@ -6,7 +6,7 @@
 
 #include <boost/test/included/unit_test.hpp>
 
-#include "cxxmath.hpp"
+#include "../cxxmath.hpp"
 
 BOOST_AUTO_TEST_CASE( test_bool )
 {

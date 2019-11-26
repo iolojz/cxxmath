@@ -5,7 +5,7 @@
 #ifndef CXXMATH_CORE_CONCEPTS_HPP
 #define CXXMATH_CORE_CONCEPTS_HPP
 
-#include "helpers/wrap_template_members.hpp"
+#include "../helpers/wrap_template_members.hpp"
 
 namespace cxxmath
 {

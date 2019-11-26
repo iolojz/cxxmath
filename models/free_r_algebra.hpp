@@ -10,10 +10,10 @@
 #include "std_get.hpp"
 #include "function_object.hpp"
 
-#include "helpers/is_range.hpp"
-#include "helpers/erase_if.hpp"
+#include "../helpers/is_range.hpp"
+#include "../helpers/erase_if.hpp"
 
-#include "concepts/r_module.hpp"
+#include "../concepts/r_module.hpp"
 
 #include <boost/range/combine.hpp>
 #include <boost/container/flat_map.hpp>

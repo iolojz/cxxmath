@@ -5,7 +5,7 @@
 #ifndef CXXMATH_CORE_MAKE_HPP
 #define CXXMATH_CORE_MAKE_HPP
 
-#include "models/function_object.hpp"
+#include "../models/function_object.hpp"
 
 namespace cxxmath {
 namespace impl {

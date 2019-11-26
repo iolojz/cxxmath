@@ -15,7 +15,7 @@
 #ifndef CXXMATH_CONCEPTS_BOOLEAN_LATTICE_HPP
 #define CXXMATH_CONCEPTS_BOOLEAN_LATTICE_HPP
 
-#include "models/function_object.hpp"
+#include "../models/function_object.hpp"
 
 namespace cxxmath
 {

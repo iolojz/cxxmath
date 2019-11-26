@@ -5,7 +5,7 @@
 #ifndef CXXMATH_MODELS_STD_VECTOR_HPP
 #define CXXMATH_MODELS_STD_VECTOR_HPP
 
-#include "concepts/monoid.hpp"
+#include "../concepts/monoid.hpp"
 
 #include <vector>
 
