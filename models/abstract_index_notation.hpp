@@ -6,6 +6,7 @@
 #define CXXMATH_MODELS_ABSTRACT_INDEX_NOTATION_HPP
 
 #include <variant>
+#include <optional>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/join.hpp>
 #include <boost/range/sub_range.hpp>
