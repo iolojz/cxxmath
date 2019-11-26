@@ -49,10 +49,10 @@ BOOST_AUTO_TEST_CASE( test_product_monoid_int_int )
 	
 	auto pair = pair42_23;
 	
-	BOOST_TEST( compose( pair42_23, pair42_23 ) == pair1764_529 );
+	BOOST_TEST( std_pair_int_int_monoid::compose( pair42_23, pair42_23 ) == pair1764_529 );
 	BOOST_TEST( std_pair_int_int_monoid::neutral_element() == pair1_1 );
 	BOOST_TEST( std_pair_int_int_monoid::is_abelian_monoid() == true );
-	BOOST_TEST( compose_assign( pair, pair ) == pair1764_529 );
+	BOOST_TEST( std_pair_int_int_monoid::compose_assign( pair, pair ) == pair1764_529 );
 	BOOST_TEST( pair == pair1764_529 );
 	
 	pair = pair42_23;
@@ -68,6 +68,7 @@ BOOST_AUTO_TEST_CASE( test_product_monoid_int_vector )
 {
 	using namespace cxxmath;
 	using default_std_pair_product = default_product_t<std_pair_tag>;
+	using int_vector_monoid = product_monoid<default_std_pair_product>;
 	using string_vector = std::vector<std::string_view>;
 	
 	string_vector empty;
@@ -80,7 +81,7 @@ BOOST_AUTO_TEST_CASE( test_product_monoid_int_vector )
 	
 	auto pair = pair42_a;
 	
-	BOOST_TEST( compose( pair42_a, pair42_a ) == pair1764_aa );
-	BOOST_TEST( compose_assign( pair, pair ) == pair1764_aa );
+	BOOST_TEST( int_vector_monoid::compose( pair42_a, pair42_a ) == pair1764_aa );
+	BOOST_TEST( int_vector_monoid::compose_assign( pair, pair ) == pair1764_aa );
 	BOOST_TEST( pair == pair1764_aa );
 }

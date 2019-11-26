@@ -169,7 +169,7 @@ template<class DispatchTag, bool> class has_default_product_monoid {
 public:
 	static constexpr bool value  = std::conditional_t<
 		product::has_unique_first_tag && product::has_unique_second_tag,
-		std::bool_constant<has_default_monoid_v<product::unique_first_tag> && has_default_monoid_v<product::unique_first_tag>>,
+		std::bool_constant<has_default_monoid_v<typename product::unique_first_tag> && has_default_monoid_v<typename product::unique_first_tag>>,
 		std::false_type
 	>::value;
 };
