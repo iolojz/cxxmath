@@ -6,7 +6,7 @@
 #define CXXMATH_HELPERS_BOOLEAN_V_HPP
 
 namespace cxxmath {
-template<class ...> static constexpr bool true_ = true;
+template<class ...> static constexpr bool true_v = true;
 template<class ...> static constexpr bool false_v = false;
 }
 
