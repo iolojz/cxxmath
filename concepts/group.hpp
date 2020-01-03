@@ -15,6 +15,7 @@ namespace concepts
 template<class Monoid, class InvertInPlace, class Inverse>
 struct group
 {
+	static_assert( is_monoid_v<Monoid>, "Monoid parameter is not a Monoid." );
 	using monoid_ = Monoid;
 	
 	static constexpr auto compose = monoid_::compose;
@@ -28,19 +29,27 @@ struct group
 template<class Monoid, class InvertInPlace> using assignable_group = group<Monoid, InvertInPlace, impl::unary_operator<InvertInPlace>>;
 
 template<class Monoid, class Inverse> using non_assignable_group = group<Monoid, impl::unsupported_implementation, Inverse>;
+
+template<class> struct is_group : std::false_type {};
+template<class Monoid, class InvertInPlace, class Inverse> struct is_group<group<Monoid, InvertInPlace, Inverse>>
+: std::true_type {};
+
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_group)
 }
 
-template<class DispatchTag, class Monoid, class InvertInPlace, class Inverse>
-struct models_concept<DispatchTag, concepts::group<Monoid, InvertInPlace, Inverse>>
+template<class DispatchTag, class Group>
+struct models_concept<DispatchTag, Group, std::enable_if_t<concepts::is_group_v<Group>>>
 {
 private:
-	using group = concepts::group<Monoid, InvertInPlace, Inverse>;
 	static constexpr bool invert_in_place_valid =
-	std::is_same_v < typename group::invert_in_place::implementation, impl::unsupported_implementation>
-	? true : group::invert_in_place.template supports_tag<DispatchTag>;
+	std::is_same_v < typename Group::invert_in_place::implementation, impl::unsupported_implementation>
+	? true : Group::invert_in_place.template supports_tag<DispatchTag>;
 public:
-	static constexpr bool value = ( models_concept_v < DispatchTag, Monoid > && invert_in_place_valid &&
-																	group::inverse.template supports_tag<DispatchTag>());
+	static constexpr bool value = (
+		models_concept_v<DispatchTag, typename Group::monoid_> &&
+		invert_in_place_valid &&
+		Group::inverse.template supports_tag<DispatchTag>()
+	);
 };
 
 CXXMATH_DEFINE_CONCEPT( group )

@@ -59,23 +59,24 @@ public:
 	
 	static constexpr auto not_equal = compose( not_, equal );
 };
+
+template<class> struct is_total_order : std::false_type {};
+template<class Less> struct is_total_order<total_order<Less>> : std::true_type {};
+
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_total_order)
 }
 
-template<class DispatchTag, class Less>
-struct models_concept<DispatchTag, concepts::total_order<Less>>
+template<class DispatchTag, class TotalOrder>
+struct models_concept<DispatchTag, TotalOrder, std::enable_if_t<concepts::is_total_order_v<TotalOrder>>>
 {
-	using total_order = concepts::total_order<Less>;
-	static constexpr bool value = total_order::less.template supports_tag<DispatchTag>();
+	static constexpr bool value = TotalOrder::less.template supports_tag<DispatchTag>();
 };
 
 CXXMATH_DEFINE_CONCEPT( total_order )
 
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( less, total_order )
-
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( less_equal, total_order )
-
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( greater, total_order )
-
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( greater_equal, total_order )
 
 template<class Less> using totally_ordered_set = concepts::set<typename concepts::total_order<Less>::equal::implementation>;

@@ -14,6 +14,9 @@ namespace concepts
 template<class RModule, class Monoid>
 struct r_algebra
 {
+	static_assert( is_r_module_v<RModule>, "RModule parameter is not an RModule." );
+	static_assert( is_monoid_v<Monoid>, "Monoid parameter is not an Monoid." );
+	
 	using r_module_ = RModule;
 	using monoid_ = Monoid;
 	
@@ -31,14 +34,20 @@ struct r_algebra
 	static constexpr auto multiply_assign = monoid_::compose_assign;
 	static constexpr auto one = monoid_::neutral_element;
 };
+
+template<class> struct is_r_algebra : std::false_type {};
+template<class RModule, class Monoid> struct is_r_algebra<r_algebra<RModule, Monoid>> : std::true_type {};
+
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_r_algebra)
 }
 
-template<class DispatchTag, class RModule, class Monoid>
-struct models_concept<DispatchTag, concepts::r_algebra<RModule, Monoid>>
+template<class DispatchTag, class RAlgebra>
+struct models_concept<DispatchTag, RAlgebra, std::enable_if_t<concepts::is_r_algebra_v<RAlgebra>>>
 {
-	using r_module = concepts::r_algebra<RModule, Monoid>;
-	static constexpr bool value = ( models_concept<DispatchTag, RModule>::value &&
-									models_concept<DispatchTag, Monoid>::value );
+	static constexpr bool value = (
+		models_concept<DispatchTag, typename RAlgebra::r_module_>::value &&
+		models_concept<DispatchTag, typename RAlgebra::monoid_>::value
+	);
 };
 
 CXXMATH_DEFINE_CONCEPT( r_algebra )

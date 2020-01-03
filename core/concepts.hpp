@@ -9,7 +9,7 @@
 
 namespace cxxmath
 {
-template<class DispatchTag, class Concept>
+template<class DispatchTag, class Concept, class = void>
 struct models_concept : std::false_type
 {
 };

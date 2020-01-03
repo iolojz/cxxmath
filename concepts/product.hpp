@@ -23,6 +23,12 @@ struct product
 	static constexpr auto first = function_object_v<First>;
 	static constexpr auto second = function_object_v<Second>;
 };
+
+template<class> struct is_product : std::false_type {};
+template<class First, class Second, class UniqueFirstTag, class UniqueSecondTag>
+struct is_product<product<First, Second, UniqueFirstTag, UniqueSecondTag>> : std::true_type {};
+
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_product)
 }
 
 namespace impl
@@ -43,13 +49,14 @@ struct default_make_product_dispatch
 	}
 };
 
-template<class DispatchTag, class First, class Second, class UniqueFirstTag, class UniqueSecondTag>
-struct models_concept<DispatchTag, concepts::product<First, Second, UniqueFirstTag, UniqueSecondTag>>
+template<class DispatchTag, class Product>
+struct models_concept<DispatchTag, Product, std::enable_if_t<concepts::is_product_v<Product>>>
 {
-	using product = concepts::product<First, Second, UniqueFirstTag, UniqueSecondTag>;
-	static constexpr bool value = ( product::first.template supports_tag<DispatchTag>() &&
-									product::second.template supports_tag<DispatchTag>() &&
-									!std::is_same_v < impl::make_product<product>, impl::unsupported_implementation > );
+	static constexpr bool value = (
+		Product::first.template supports_tag<DispatchTag>() &&
+		Product::second.template supports_tag<DispatchTag>() &&
+		!std::is_same_v<impl::make_product<Product>, impl::unsupported_implementation>
+	);
 };
 
 template<class Product> static constexpr default_make_product_dispatch<Product> make_product;

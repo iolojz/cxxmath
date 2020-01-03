@@ -28,23 +28,27 @@ struct boolean_lattice
 	static constexpr auto or_ = function_object_v<Or>;
 	static constexpr auto not_ = function_object_v<Not>;
 };
+
+template<class> struct is_boolean_lattice : std::false_type {};
+template<class And, class Or, class Not> struct is_boolean_lattice<boolean_lattice<And, Or, Not>> : std::true_type {};
+
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_boolean_lattice)
 }
 
-template<class DispatchTag, class And, class Or, class Not>
-struct models_concept<DispatchTag, concepts::boolean_lattice<And, Or, Not>>
+template<class DispatchTag, class BooleanLattice>
+struct models_concept<DispatchTag, BooleanLattice, std::enable_if_t<concepts::is_boolean_lattice_v<BooleanLattice>>>
 {
-	using boolean_lattice = concepts::boolean_lattice<And, Or, Not>;
-	static constexpr bool value = ( boolean_lattice::and_.template supports_tag<DispatchTag>() &&
-									boolean_lattice::or_.template supports_tag<DispatchTag>() &&
-									boolean_lattice::not_.template supports_tag<DispatchTag>());
+	static constexpr bool value = (
+		BooleanLattice::and_.template supports_tag<DispatchTag>() &&
+		BooleanLattice::or_.template supports_tag<DispatchTag>() &&
+		BooleanLattice::not_.template supports_tag<DispatchTag>()
+	);
 };
 
 CXXMATH_DEFINE_CONCEPT( boolean_lattice )
 
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( and_, boolean_lattice )
-
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( or_, boolean_lattice )
-
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( not_, boolean_lattice )
 
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_BINARY_OPERATOR( &&, and_ )

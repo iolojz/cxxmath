@@ -14,6 +14,10 @@ namespace concepts
 template<class AbelianGroup, class Monoid>
 struct ring
 {
+	static_assert( is_group_v<AbelianGroup>, "AbelianGroup parameter is not a Group." );
+	static_assert( AbelianGroup::is_abelian_group(), "AbelianGroup parameter is not abelian." );
+	static_assert( is_monoid_v<Monoid>, "Monoid parameter is not a Monoid." );
+	
 	using abelian_group = AbelianGroup;
 	using monoid_ = Monoid;
 	
@@ -35,14 +39,20 @@ public:
 															  add_assign_impl, impl::unsupported_implementation>, impl::unsupported_implementation, impl::binary_operator_invert_second<add_assign_impl, negate_impl> >>;
 	static constexpr auto subtract = binary_operator_invert_second_v<add_impl, negate_impl>;
 };
+
+template<class> struct is_ring : std::false_type {};
+template<class AbelianGroup, class Monoid> struct is_ring<ring<AbelianGroup, Monoid>> : std::true_type {};
+
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_ring)
 }
 
-template<class DispatchTag, class AbelianGroup, class Monoid>
-struct models_concept<DispatchTag, concepts::ring<AbelianGroup, Monoid>>
+template<class DispatchTag, class Ring>
+struct models_concept<DispatchTag, Ring, std::enable_if_t<concepts::is_ring_v<Ring>>>
 {
-	using ring = concepts::ring<AbelianGroup, Monoid>;
-	static constexpr bool value = ( models_concept_v < DispatchTag, AbelianGroup > && models_concept_v < DispatchTag,
-	Monoid > );
+	static constexpr bool value = (
+		models_concept_v<DispatchTag, typename Ring::abelian_group> &&
+		models_concept_v<DispatchTag, typename Ring::monoid_>
+	);
 };
 
 CXXMATH_DEFINE_CONCEPT( ring )

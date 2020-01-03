@@ -20,26 +20,29 @@ struct monoid
 	static constexpr auto neutral_element = function_object_v<NeutralElement>;
 	static constexpr auto is_abelian_monoid = function_object_v<IsAbelian>;
 };
+
+template<class ComposeAssign, class Compose, class NeutralElement, class IsAbelian>
+struct is_monoid<monoid<ComposeAssign, Compose, NeutralElement, IsAbelian>> : std::true_type {};
 }
 
-template<class DispatchTag, class ComposeAssign, class Compose, class NeutralElement, class IsAbelian>
-struct models_concept<DispatchTag, concepts::monoid<ComposeAssign, Compose, NeutralElement, IsAbelian>>
+template<class DispatchTag, class Monoid>
+struct models_concept<DispatchTag, Monoid, std::enable_if_t<concepts::is_monoid_v<Monoid>>>
 {
 private:
-	using monoid = concepts::monoid<ComposeAssign, Compose, NeutralElement, IsAbelian>;
 	static constexpr bool compose_assign_valid =
-	std::is_same_v < typename monoid::compose_assign::implementation, impl::unsupported_implementation>
-	? true : monoid::compose_assign.template supports_tag<DispatchTag>;
+	std::is_same_v < typename Monoid::compose_assign::implementation, impl::unsupported_implementation>
+	? true : Monoid::compose_assign.template supports_tag<DispatchTag>;
 public:
-	static constexpr bool value = ( compose_assign_valid && monoid::compose.template supports_tag<DispatchTag>() &&
-									monoid::neutral_element.template supports_tag<DispatchTag>() &&
-									monoid::is_abelian_monoid.template supports_tag<DispatchTag>());
+	static constexpr bool value = (
+		compose_assign_valid &&
+		Monoid::compose.template supports_tag<DispatchTag>() &&
+		Monoid::neutral_element.template supports_tag<DispatchTag>() &&
+		Monoid::is_abelian_monoid.template supports_tag<DispatchTag>()
+	);
 };
 
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( compose, monoid )
-
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( compose_assign, monoid )
-
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( is_abelian_monoid, monoid )
 }
 

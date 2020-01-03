@@ -18,13 +18,17 @@ struct set
 	static constexpr auto equal = function_object_v<Equal>;
 	static constexpr auto not_equal = compose( not_, equal );
 };
+
+template<class> struct is_set : std::false_type {};
+template<class Equal> struct is_set<set<Equal>> : std::true_type {};
+
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_set)
 }
 
-template<class DispatchTag, class Equal>
-struct models_concept<DispatchTag, concepts::set<Equal>>
+template<class DispatchTag, class Set>
+struct models_concept<DispatchTag, Set, std::enable_if_t<concepts::is_set_v<Set>>>
 {
-	using set = concepts::set<Equal>;
-	static constexpr bool value = set::equal.template supports_tag<DispatchTag>();
+	static constexpr bool value = Set::equal.template supports_tag<DispatchTag>();
 };
 
 CXXMATH_DEFINE_CONCEPT( set )

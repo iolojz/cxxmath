@@ -14,6 +14,8 @@ namespace concepts
 template<class AbelianGroup, class ScalarMultiplyAssign, class ScalarMultiply>
 struct r_module
 {
+	static_assert( is_group_v<AbelianGroup>, "AbelianGroup parameter is not a Group." );
+	static_assert( AbelianGroup::is_abelian_group(), "AbelianGroup parameter is not abelian." );
 	using abelian_group = AbelianGroup;
 	
 	static constexpr auto zero = abelian_group::neutral_element;
@@ -54,13 +56,18 @@ struct scalar_multiply : forward_supported_tags<ScalarMultiplyAssign>
 
 template<class AbelianGroup, class ScalarMultiplyAssign> using assignable_r_module = r_module<AbelianGroup, ScalarMultiplyAssign, detail::scalar_multiply<ScalarMultiplyAssign>>;
 template<class AbelianGroup, class ScalarMultiply> using non_assignable_r_module = r_module<AbelianGroup, impl::unsupported_implementation, ScalarMultiply>;
+
+template<class> struct is_r_module : std::false_type {};
+template<class AbelianGroup, class ScalarMultiplyAssign, class ScalarMultiply>
+struct is_r_module<r_module<AbelianGroup, ScalarMultiplyAssign, ScalarMultiply>> : std::true_type {};
+
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_r_module)
 }
 
-template<class DispatchTag, class AbelianGroup, class ScalarMultiplyAssign, class ScalarMultiply>
-struct models_concept<DispatchTag, concepts::r_module<AbelianGroup, ScalarMultiplyAssign, ScalarMultiply>>
+template<class DispatchTag, class RModule>
+struct models_concept<DispatchTag, RModule, std::enable_if_t<concepts::is_r_module_v<RModule>>>
 {
-	using r_module = concepts::r_module<AbelianGroup, ScalarMultiplyAssign, ScalarMultiply>;
-	static constexpr bool value = models_concept_v<DispatchTag, AbelianGroup>;
+	static constexpr bool value = models_concept_v<DispatchTag, typename RModule::abelian_group>;
 };
 
 CXXMATH_DEFINE_CONCEPT( r_module )
