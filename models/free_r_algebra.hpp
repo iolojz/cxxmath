@@ -222,7 +222,6 @@ public:
 		
 		template<class C, class ...Symbols>
 		static decltype(auto) make_from_coefficient_and_symbols( C &&c, Symbols &&...symbols ) {
-			std::cout << "bar2 = " << c << std::endl;
 			auto monoid_element = ::cxxmath::make<symbol_monoid_tag>( std::forward<Symbols>( symbols )... );
 			return make_element( std::move( monoid_element ), std::forward<C>( c ) );
 		}
