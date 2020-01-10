@@ -200,8 +200,9 @@ public:
 	class make {
 		template<class SymbolRange, class C>
 		static constexpr free_r_algebra make_element( SymbolRange &&sr, C &&c ) {
-			if( c == coefficient_ring::zero() )
+			if( coefficient_set::equal( c, coefficient_ring::zero() ) ) {
 				return zero::apply();
+			}
 			
 			monomial_container monomial_map = { { std::forward<SymbolRange>( sr ), std::forward<C>( c ) } };
 			return { std::move( monomial_map ) };
@@ -221,6 +222,7 @@ public:
 		
 		template<class C, class ...Symbols>
 		static decltype(auto) make_from_coefficient_and_symbols( C &&c, Symbols &&...symbols ) {
+			std::cout << "bar2 = " << c << std::endl;
 			auto monoid_element = ::cxxmath::make<symbol_monoid_tag>( std::forward<Symbols>( symbols )... );
 			return make_element( std::move( monoid_element ), std::forward<C>( c ) );
 		}
@@ -235,6 +237,7 @@ public:
 	public:
 		template<class C, class ...Args, CXXMATH_ENABLE_IF_TAG_IS(C, tag_of_t<Coefficient>)>
 		static decltype(auto) apply( C &&c, Args &&...args ) {
+			
 			if constexpr( sizeof...(Args) == 0 )
 				return make_from_coefficient_and_symbols( std::forward<C>( c ), std::forward<Args>( args )... );
 			else if constexpr( sizeof...(Args) == 1 && is_range_v<std::tuple_element_t<0, std::tuple<Args...>>> )
@@ -306,6 +309,33 @@ public:
 		}
 	};
 };
+
+namespace detail {
+template<class Monomial>
+void print_monomial( std::ostream &os, const Monomial &m )
+{
+	os << std::get<1>( m );
+	for( const auto &v : std::get<0>( m ))
+		os << " " << v;
+}
+}
+
+template<class FRA>
+std::enable_if_t<is_free_r_algebra_tag_v<tag_of_t<FRA>>, std::ostream> &operator<<( std::ostream &os, const FRA &fra ) {
+	using coefficient_ring = typename std::decay_t<FRA>::coefficient_ring;
+	
+	const auto &monomials = fra.monomials();
+	if( monomials.empty())
+		return os << coefficient_ring::zero();
+	
+	auto it = monomials.begin();
+	detail::print_monomial( os, *it );
+	for( ++it; it != monomials.end(); ++it ) {
+		os << " + ";
+		detail::print_monomial( os, *it );
+	}
+	return os;
+}
 
 namespace model_free_r_algebra {
 template<class FRATag> class free_r_algebra_concepts;

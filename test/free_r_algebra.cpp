@@ -8,42 +8,6 @@
 
 #include "../cxxmath.hpp"
 
-namespace
-{
-template<class Monomial>
-void print_monomial( std::ostream &os, const Monomial &m );
-}
-
-namespace cxxmath
-{
-template<class FRA, class = std::enable_if_t<is_free_r_algebra_tag_v<tag_of_t<FRA>>>>
-std::ostream &operator<<( std::ostream &os, const FRA &p )
-{
-	const auto &monomials = p.monomials();
-	if( monomials.empty())
-		return os << "0";
-	
-	auto it = monomials.begin();
-	print_monomial( os, *it );
-	for( ++it; it != monomials.end(); ++it ) {
-		os << " + ";
-		print_monomial( os, *it );
-	}
-	return os;
-}
-}
-
-namespace
-{
-template<class Monomial>
-void print_monomial( std::ostream &os, const Monomial &m )
-{
-	os << std::get<1>( m );
-	for( const auto &v : std::get<0>( m ))
-		os << " " << v;
-}
-}
-
 BOOST_AUTO_TEST_CASE( test_free_r_algebra )
 {
 	using namespace cxxmath;

@@ -96,12 +96,6 @@ struct default_ring<int>
 };
 
 template<>
-struct default_set<int>
-{
-	using type = concepts::set<model_int::equal>;
-};
-
-template<>
 struct default_total_order<int>
 {
 	using type = concepts::total_order<model_int::less>;

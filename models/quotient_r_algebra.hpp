@@ -122,6 +122,11 @@ public:
 	};
 };
 
+template<class QRA>
+std::enable_if_t<is_quotient_r_algebra_tag_v<tag_of_t<QRA>>, std::ostream> &operator<<( std::ostream &os, const QRA &qra ) {
+	return os << qra.representative();
+}
+
 namespace model_quotient_r_algebra {
 template<class FRATag, class QSpec> class quotient_r_algebra_concepts {
 	using value_type = quotient_r_algebra<FRATag, QSpec>;

@@ -79,7 +79,7 @@ CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( less_equal, total_order )
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( greater, total_order )
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( greater_equal, total_order )
 
-template<class Less> using totally_ordered_set = concepts::set<typename concepts::total_order<Less>::equal::implementation>;
+template<class TotalOrder> using totally_ordered_set = concepts::set<typename decltype(TotalOrder::equal)::implementation>;
 
 namespace impl
 {

@@ -37,14 +37,6 @@ std::ostream &operator<<( std::ostream &os, const manifold_dimension & )
 {
 	return os << "D";
 }
-
-template<class Monomial>
-void print_monomial( std::ostream &os, const Monomial &m )
-{
-	os << std::get<1>( m );
-	for( const auto &v : std::get<0>( m ))
-		os << " " << v;
-}
 }
 
 namespace cxxmath {
@@ -91,27 +83,6 @@ template<> struct default_total_order<formal_metric_entry> {
 template<> struct default_total_order<manifold_dimension> {
 	using type = concepts::total_order<impl::false_implementation>;
 };
-
-template<class RAlgebra, class = std::enable_if_t<
-        is_free_r_algebra_tag_v<tag_of_t<RAlgebra>> || is_quotient_r_algebra_tag_v<tag_of_t<RAlgebra>>>>
-std::ostream &operator<<( std::ostream &os, const RAlgebra &ra )
-{
-	if constexpr( is_free_r_algebra_tag_v<tag_of_t<RAlgebra>> ) {
-		const auto &monomials = ra.monomials();
-		if( monomials.empty())
-			return os << "0";
-		
-		auto it = monomials.begin();
-		print_monomial( os, *it );
-		for( ++it; it != monomials.end(); ++it ) {
-			os << " + ";
-			print_monomial( os, *it );
-		}
-		return os;
-	} else {
-		return os << "[" << ra.representative() << "]";
-	}
-}
 }
 
 namespace {
