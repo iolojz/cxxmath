@@ -8,8 +8,7 @@
 
 #include "../cxxmath.hpp"
 
-BOOST_AUTO_TEST_CASE( test_free_r_algebra )
-{
+BOOST_AUTO_TEST_CASE( test_free_r_algebra ) {
 	using namespace cxxmath;
 	
 	static_assert( models_concept_v<std_pair_tag, std_get_product> );
@@ -22,23 +21,23 @@ BOOST_AUTO_TEST_CASE( test_free_r_algebra )
 	const auto zero_ = make<polynomial_tag>( 0 );
 	const auto one_ = make<polynomial_tag>( 1 );
 	
-	BOOST_TEST( equal( zero_, polynomial_r_algebra::zero()));
-	BOOST_TEST( not_equal( one_, polynomial_r_algebra::zero()));
+	BOOST_TEST( equal( zero_, polynomial_r_algebra::zero() ) );
+	BOOST_TEST( not_equal( one_, polynomial_r_algebra::zero() ) );
 	
-	BOOST_TEST( equal( one_, polynomial_r_algebra::one()));
-	BOOST_TEST( not_equal( zero_, polynomial_r_algebra::one()));
+	BOOST_TEST( equal( one_, polynomial_r_algebra::one() ) );
+	BOOST_TEST( not_equal( zero_, polynomial_r_algebra::one() ) );
 	
 	const auto ab42 = make<polynomial_tag>( 42, "a", "b" );
 	const auto ba23 = make<polynomial_tag>( 23, "b", "a" );
 	const auto abm42 = make<polynomial_tag>( -42, "a", "b" );
 	
-	const std::vector<std::string_view> ab = { "a", "b" };
-	const std::vector<std::string_view> ba = { "b", "a" };
+	const std::vector<std::string_view> ab = {"a", "b"};
+	const std::vector<std::string_view> ba = {"b", "a"};
 	
-	const std::vector<std::string_view> abba = { "a", "b", "b", "a" };
-	const std::vector<std::string_view> baab = { "b", "a", "a", "b" };
-	const std::vector<std::string_view> abab = { "a", "b", "a", "b" };
-	const std::vector<std::string_view> baba = { "b", "a", "b", "a" };
+	const std::vector<std::string_view> abba = {"a", "b", "b", "a"};
+	const std::vector<std::string_view> baab = {"b", "a", "a", "b"};
+	const std::vector<std::string_view> abab = {"a", "b", "a", "b"};
+	const std::vector<std::string_view> baba = {"b", "a", "b", "a"};
 	
 	const auto ab84 = make<polynomial_tag>( 84, "a", "b" );
 	const auto abab1764 = make<polynomial_tag>( 42 * 42, "a", "b", "a", "b" );
@@ -46,11 +45,13 @@ BOOST_AUTO_TEST_CASE( test_free_r_algebra )
 	BOOST_TEST( add( ab42, ab42 ) == ab84 );
 	BOOST_TEST( multiply( ab42, ab42 ) == abab1764 );
 	
-	const auto ab42_ba23 = make<polynomial_tag>( std::make_pair( ab, 42 ), std::make_pair( ba, 23 ));
-	const auto abab1764_abba966_baab966_baba529 = make<polynomial_tag>( std::make_pair( abab, 1764 ),
-																				   std::make_pair( abba, 966 ),
-																				   std::make_pair( baab, 966 ),
-																				   std::make_pair( baba, 529 ));
+	const auto ab42_ba23 = make<polynomial_tag>( std::make_pair( ab, 42 ), std::make_pair( ba, 23 ) );
+	const auto abab1764_abba966_baab966_baba529 = make<polynomial_tag>(
+		std::make_pair( abab, 1764 ),
+		std::make_pair( abba, 966 ),
+		std::make_pair( baab, 966 ),
+		std::make_pair( baba, 529 )
+	);
 	
 	BOOST_TEST( add( ab42, ba23 ) == ab42_ba23 );
 	BOOST_TEST( subtract( ab42_ba23, ba23 ) == ab42 );

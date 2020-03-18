@@ -8,67 +8,60 @@
 #include "../helpers/has_member_type.hpp"
 #include "../helpers/wrap_template_members.hpp"
 
-namespace cxxmath
-{
-namespace detail
-{
+namespace cxxmath {
+namespace detail {
 template<class, class = void>
-struct has_dispatch_tag : std::false_type
-{
+struct has_dispatch_tag: std::false_type {
 };
 
 template<class T>
-struct has_dispatch_tag<T, std::void_t<typename T::cxxmath_dispatch_tag>> : std::true_type
-{
+struct has_dispatch_tag<T, std::void_t<typename T::cxxmath_dispatch_tag>>: std::true_type {
 };
 
 template<class T, bool>
 struct tag_of;
 
 template<class T>
-struct tag_of<T, true>
-{
+struct tag_of<T, true> {
 	using type = typename T::cxxmath_dispatch_tag;
 };
 
 template<class T>
-struct tag_of<T, false>
-{
+struct tag_of<T, false> {
 	using type = std::decay_t<T>;
 };
 }
 
-namespace impl
-{
+namespace impl {
 template<class T>
-struct tag_of
-{
+struct tag_of {
 	using type = typename detail::tag_of<T, detail::has_dispatch_tag<T>::value>::type;
 };
 
 template<class Tag1, class Tag2, class = void>
 struct common_tag {};
 template<class Tag1, class Tag2>
-struct common_tag<Tag1, Tag2, std::enable_if_t<std::is_same_v<Tag1, Tag2>>>
-{
+struct common_tag<Tag1, Tag2, std::enable_if_t<std::is_same_v<Tag1, Tag2>>> {
 	using type = Tag1;
 };
 }
 
 template<class T>
-struct tag_of
-{
+struct tag_of {
 	using type = typename impl::tag_of<std::decay_t<T>>::type;
+	static_assert( std::is_same_v<type, typename tag_of<type>::type,
+		"The implementation of tag_of is not idempotent for T" );
 };
-CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE(tag_of)
+CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE( tag_of )
+
+template<class ...Tags> struct multitag {};
 
 template<class ...Tags>
 struct common_tag;
-CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE(common_tag)
+CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE( common_tag )
 
 template<class Tag>
-struct common_tag<Tag>
-{
+struct common_tag<Tag> {
 	using type = Tag;
 };
 
@@ -76,40 +69,19 @@ namespace detail {
 template<class Tag1, class Tag2, class TagTuple, class = void> struct common_tag {};
 
 template<class Tag1, class Tag2, class ...Tags>
-struct common_tag<Tag1, Tag2, std::tuple<Tags...>, std::enable_if_t<has_member_type<impl::common_tag<Tag1, Tag2>>::value>>
-{
+struct common_tag<
+	Tag1, Tag2, std::tuple<Tags...>, std::enable_if_t<has_member_type<impl::common_tag<Tag1, Tag2>>::value>> {
 	using type = ::cxxmath::common_tag_t<typename impl::common_tag<Tag1, Tag2>::type, Tags...>;
 };
 }
 
 template<class Tag1, class Tag2, class ...Tags>
-struct common_tag<Tag1, Tag2, Tags...> : detail::common_tag<Tag1, Tag2, std::tuple<Tags...>> {};
+struct common_tag<Tag1, Tag2, Tags...>: detail::common_tag<Tag1, Tag2, std::tuple<Tags...>> {};
 
 template<class ...Args> struct have_common_tag {
 	static constexpr bool value = detail::has_member_type<common_tag<tag_of_t<Args>...>>::value;
 };
-CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(have_common_tag)
-
-template<class DispatchTag>
-struct supports_tag_helper
-{
-	template<class Tag>
-	static constexpr bool supports_tag( void )
-	{
-		return std::is_same_v<DispatchTag, Tag>;
-	}
-};
-
-template<class ...Implementations>
-struct forward_supported_tags
-{
-	template<class Tag>
-	static constexpr bool supports_tag( void )
-	{
-		return (Implementations::template supports_tag<Tag>() && ... && true);
-	}
-};
-}
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( have_common_tag )
 
 #ifdef CXXMATH_ENABLE_IF_TAG_IS
 #error "CXXMATH_ENABLE_IF_TAG_IS is already defined."

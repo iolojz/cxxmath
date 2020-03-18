@@ -5,10 +5,8 @@
 #ifndef CXXMATH_MODELS_FUNCTION_OBJECT_FWD_HPP
 #define CXXMATH_MODELS_FUNCTION_OBJECT_FWD_HPP
 
-namespace cxxmath
-{
-namespace impl
-{
+namespace cxxmath {
+namespace impl {
 struct identity;
 struct unsupported_implementation;
 }

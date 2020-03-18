@@ -17,7 +17,7 @@
 #include "concepts/r_algebra.hpp"
 #include "concepts/r_module.hpp"
 #include "concepts/ring.hpp"
-#include "concepts/set.hpp"
+#include "concepts/comparable.hpp"
 #include "concepts/total_order.hpp"
 
 #include "models/abstract_index_notation.hpp"

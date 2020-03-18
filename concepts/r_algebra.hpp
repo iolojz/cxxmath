@@ -7,13 +7,10 @@
 
 #include "r_module.hpp"
 
-namespace cxxmath
-{
-namespace concepts
-{
+namespace cxxmath {
+namespace concepts {
 template<class RModule, class Monoid>
-struct r_algebra
-{
+struct r_algebra {
 	static_assert( is_r_module_v<RModule>, "RModule parameter is not an RModule." );
 	static_assert( is_monoid_v<Monoid>, "Monoid parameter is not an Monoid." );
 	
@@ -35,18 +32,17 @@ struct r_algebra
 	static constexpr auto one = monoid_::neutral_element;
 };
 
-template<class> struct is_r_algebra : std::false_type {};
-template<class RModule, class Monoid> struct is_r_algebra<r_algebra<RModule, Monoid>> : std::true_type {};
+template<class> struct is_r_algebra: std::false_type {};
+template<class RModule, class Monoid> struct is_r_algebra<r_algebra<RModule, Monoid>>: std::true_type {};
 
-CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_r_algebra)
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_r_algebra )
 }
 
-template<class DispatchTag, class RAlgebra>
-struct models_concept<DispatchTag, RAlgebra, std::enable_if_t<concepts::is_r_algebra_v<RAlgebra>>>
-{
+template<class Type, class RAlgebra>
+struct type_models_concept<Type, RAlgebra, std::enable_if_t<concepts::is_r_algebra_v<RAlgebra>>> {
 	static constexpr bool value = (
-		models_concept<DispatchTag, typename RAlgebra::r_module_>::value &&
-		models_concept<DispatchTag, typename RAlgebra::monoid_>::value
+		type_models_concept<Type, typename RAlgebra::r_module_>::value &&
+		type_models_concept<Type, typename RAlgebra::monoid_>::value
 	);
 };
 

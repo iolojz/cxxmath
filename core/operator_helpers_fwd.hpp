@@ -5,8 +5,7 @@
 #ifndef CXXMATH_CORE_OPERATOR_HELPERS_FWD_HPP
 #define CXXMATH_CORE_OPERATOR_HELPERS_FWD_HPP
 
-namespace cxxmath::impl
-{
+namespace cxxmath::impl {
 template<class BinaryOperatorAssign, class IsAbelian>
 struct binary_operator;
 

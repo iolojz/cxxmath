@@ -12,7 +12,7 @@ namespace cxxmath {
 namespace detail {
 struct call_std_begin {
 	template<class Arg> constexpr auto operator()( Arg &&arg )
-	-> decltype(std::begin( std::forward<Arg>( arg ) )) {
+	-> decltype( std::begin( std::forward<Arg>( arg ) ) ) {
 		return std::begin( std::forward<Arg>( arg ) );
 	}
 };

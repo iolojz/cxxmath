@@ -8,8 +8,7 @@
 
 #include "../cxxmath.hpp"
 
-BOOST_AUTO_TEST_CASE( test_mapping_prescription )
-{
+BOOST_AUTO_TEST_CASE( test_mapping_prescription ) {
 	// A mapping prescription should work "lambda" style - i.e inline spec, no declaration
 	// We need to specify which arguments are considered to be "the same", e.g a mapping prescription might be
 	//   a + a

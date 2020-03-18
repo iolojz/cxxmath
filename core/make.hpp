@@ -9,18 +9,10 @@
 
 namespace cxxmath {
 namespace impl {
-template<class Tag, class = void> struct make : supports_tag_helper<Tag> {
-	static constexpr Tag apply( Tag &&tag ) noexcept {
-		return tag;
-	}
-	
-	static constexpr Tag apply( const Tag &tag ) noexcept {
-		return tag;
-	}
-};
+template<class DispatchTag, class = void> struct make : unsupported_implementation {};
 }
 
-template<class Tag, class Spec = void> static constexpr auto make = function_object_v<impl::make<Tag, Spec>>;
+template<class DispatchTag> static constexpr auto make = function_object_v<impl::make<DispatchTag>>;
 }
 
 #endif //CXXMATH_CORE_MAKE_HPP

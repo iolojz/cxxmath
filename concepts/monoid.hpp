@@ -8,13 +8,10 @@
 #include "monoid_fwd.hpp"
 #include "../models/function_object.hpp"
 
-namespace cxxmath
-{
-namespace concepts
-{
+namespace cxxmath {
+namespace concepts {
 template<class ComposeAssign, class Compose, class NeutralElement, class IsAbelian>
-struct monoid
-{
+struct monoid {
 	static constexpr auto compose_assign = function_object_v<ComposeAssign>;
 	static constexpr auto compose = function_object_v<Compose>;
 	static constexpr auto neutral_element = function_object_v<NeutralElement>;
@@ -22,22 +19,21 @@ struct monoid
 };
 
 template<class ComposeAssign, class Compose, class NeutralElement, class IsAbelian>
-struct is_monoid<monoid<ComposeAssign, Compose, NeutralElement, IsAbelian>> : std::true_type {};
+struct is_monoid<monoid<ComposeAssign, Compose, NeutralElement, IsAbelian>>: std::true_type {};
 }
 
-template<class DispatchTag, class Monoid>
-struct models_concept<DispatchTag, Monoid, std::enable_if_t<concepts::is_monoid_v<Monoid>>>
-{
+template<class Type, class Monoid>
+struct type_models_concept<DispatchTag, Monoid, std::enable_if_t<concepts::is_monoid_v<Monoid>>> {
 private:
 	static constexpr bool compose_assign_valid =
-	std::is_same_v < typename Monoid::compose_assign::implementation, impl::unsupported_implementation>
-	? true : Monoid::compose_assign.template supports_tag<DispatchTag>;
+		std::is_same_v<typename Monoid::compose_assign::implementation, impl::unsupported_implementation>
+			? true : CXXMATH_IS_VALID( Monoid::compose_assign, std::declval<Type>() );
 public:
 	static constexpr bool value = (
 		compose_assign_valid &&
-		Monoid::compose.template supports_tag<DispatchTag>() &&
-		Monoid::neutral_element.template supports_tag<DispatchTag>() &&
-		Monoid::is_abelian_monoid.template supports_tag<DispatchTag>()
+		CXXMATH_IS_VALID( Monoid::compose, std::declval<Type>(), std::declval<Type>() ) &&
+		CXXMATH_IS_VALID( Monoid::neutral_element ) &&
+		CXXMATH_IS_VALID( Monoid::is_abelian_monoid )
 	);
 };
 

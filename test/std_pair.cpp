@@ -8,15 +8,14 @@
 
 #include "../cxxmath.hpp"
 
-BOOST_AUTO_TEST_CASE( test_product_std_pair )
-{
+BOOST_AUTO_TEST_CASE( test_product_std_pair ) {
 	using int_pair = std::pair<int, int>;
 	using namespace cxxmath;
 	
-	BOOST_TEST( first( int_pair{ 42, 23 } ) == 42 );
-	BOOST_TEST( second( int_pair{ 42, 23 } ) == 23 );
+	BOOST_TEST( first( int_pair{42, 23} ) == 42 );
+	BOOST_TEST( second( int_pair{42, 23} ) == 23 );
 	
-	int_pair p{ 42, 23 };
+	int_pair p{42, 23};
 	first( p ) = 0;
 	second( p ) = 1;
 	

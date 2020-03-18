@@ -8,44 +8,34 @@
 #include "../core/concepts.hpp"
 #include "../models/function_object.hpp"
 
-namespace cxxmath
-{
+namespace cxxmath {
 namespace concepts {
 template<class Less>
-class total_order
-{
-	struct less_equal_impl : forward_supported_tags<Less>
-	{
+class total_order {
+	struct less_equal_impl: forward_supported_tags<Less> {
 		template<class Arg1, class Arg2>
-		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
-		{
-			return not_( Less::apply( arg2, arg1 ));
+		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 ) {
+			return not_( Less::apply( arg2, arg1 ) );
 		}
 	};
 	
-	struct equal_impl : forward_supported_tags<Less>
-	{
+	struct equal_impl: forward_supported_tags<Less> {
 		template<class Arg1, class Arg2>
-		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
-		{
-			return and_( not_( Less::apply( arg1, arg2 )), not_( Less::apply( arg2, arg1 )));
+		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 ) {
+			return and_( not_( Less::apply( arg1, arg2 ) ), not_( Less::apply( arg2, arg1 ) ) );
 		}
 	};
 	
-	struct greater_equal_impl : forward_supported_tags<Less>
-	{
+	struct greater_equal_impl: forward_supported_tags<Less> {
 		template<class Arg1, class Arg2>
-		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
-		{
-			return not_( Less::apply( arg1, arg2 ));
+		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 ) {
+			return not_( Less::apply( arg1, arg2 ) );
 		}
 	};
 	
-	struct greater_impl : forward_supported_tags<Less>
-	{
+	struct greater_impl: forward_supported_tags<Less> {
 		template<class Arg1, class Arg2>
-		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 )
-		{
+		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 ) {
 			return Less::apply( arg2, arg1 );
 		}
 	};
@@ -60,16 +50,15 @@ public:
 	static constexpr auto not_equal = compose( not_, equal );
 };
 
-template<class> struct is_total_order : std::false_type {};
-template<class Less> struct is_total_order<total_order<Less>> : std::true_type {};
+template<class> struct is_total_order: std::false_type {};
+template<class Less> struct is_total_order<total_order<Less>>: std::true_type {};
 
-CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_total_order)
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_total_order )
 }
 
-template<class DispatchTag, class TotalOrder>
-struct models_concept<DispatchTag, TotalOrder, std::enable_if_t<concepts::is_total_order_v<TotalOrder>>>
-{
-	static constexpr bool value = TotalOrder::less.template supports_tag<DispatchTag>();
+template<class Type, class TotalOrder>
+struct type_models_concept<Type, TotalOrder, std::enable_if_t<concepts::is_total_order_v<TotalOrder>>> {
+	static constexpr bool value = CXXMATH_IS_VALID( TotalOrder::less, std::declval<Type>(), std::declval<Type>() );
 };
 
 CXXMATH_DEFINE_CONCEPT( total_order )
@@ -79,14 +68,14 @@ CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( less_equal, total_order )
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( greater, total_order )
 CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( greater_equal, total_order )
 
-template<class TotalOrder> using totally_ordered_set = concepts::set<typename decltype(TotalOrder::equal)::implementation>;
+template<class TotalOrder> using totally_ordered_comparable = concepts::comparable<
+	typename decltype(TotalOrder::equal)::implementation
+>;
 
-namespace impl
-{
+namespace impl {
 template<class DispatchTag>
-struct default_set<DispatchTag, std::enable_if_t<has_default_total_order_v<DispatchTag>>>
-{
-	using type = totally_ordered_set<default_total_order_t<DispatchTag>>;
+struct default_comparable<DispatchTag, std::enable_if_t<has_default_total_order_v<DispatchTag>>> {
+	using type = totally_ordered_comparable<default_total_order_t<DispatchTag>>;
 };
 }
 }

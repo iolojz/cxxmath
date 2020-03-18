@@ -8,12 +8,11 @@
 
 #include "../cxxmath.hpp"
 
-BOOST_AUTO_TEST_CASE( test_ring_int )
-{
+BOOST_AUTO_TEST_CASE( test_ring_int ) {
 	using namespace cxxmath;
 	using ring_int = default_ring_t<int>;
 	
-	BOOST_TEST( if_( ring_int::is_abelian_ring(), true, false ));
+	BOOST_TEST( if_( ring_int::is_abelian_ring(), true, false ) );
 	
 	BOOST_TEST( add( 42, 23 ) == 42 + 23 );
 	BOOST_TEST( subtract( 42, 23 ) == 42 - 23 );
@@ -39,8 +38,7 @@ BOOST_AUTO_TEST_CASE( test_ring_int )
 	BOOST_TEST( a == -( 42 + 23 - 23 ) * 23 );
 }
 
-BOOST_AUTO_TEST_CASE( test_set_int )
-{
+BOOST_AUTO_TEST_CASE( test_set_int ) {
 	using namespace cxxmath;
 	
 	BOOST_TEST( equal( 42, 42 ) == true );
@@ -50,8 +48,7 @@ BOOST_AUTO_TEST_CASE( test_set_int )
 	BOOST_TEST( not_equal( 42, 23 ) == true );
 }
 
-BOOST_AUTO_TEST_CASE( test_total_order_int )
-{
+BOOST_AUTO_TEST_CASE( test_total_order_int ) {
 	using namespace cxxmath;
 	using total_order_int = default_total_order_t<int>;
 	

@@ -8,8 +8,7 @@
 
 #include "../cxxmath.hpp"
 
-BOOST_AUTO_TEST_CASE( test_bool )
-{
+BOOST_AUTO_TEST_CASE( test_bool ) {
 	using namespace cxxmath;
 	
 	static constexpr bool yes = true;
@@ -42,8 +41,7 @@ BOOST_AUTO_TEST_CASE( test_bool )
 	BOOST_TEST( not_equal( no, no ) == false );
 }
 
-BOOST_AUTO_TEST_CASE( test_std_bool_constant )
-{
+BOOST_AUTO_TEST_CASE( test_std_bool_constant ) {
 	using namespace cxxmath;
 	
 	static constexpr std::true_type yes;

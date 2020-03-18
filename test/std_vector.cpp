@@ -8,13 +8,12 @@
 
 #include "../cxxmath.hpp"
 
-BOOST_AUTO_TEST_CASE( test_monoid_std_vector )
-{
+BOOST_AUTO_TEST_CASE( test_monoid_std_vector ) {
 	using namespace cxxmath;
-	using monoid_std_vector = default_monoid_t <tag_of_t<std::vector<int>>>;
+	using monoid_std_vector = default_monoid_t<tag_of_t<std::vector<int>>>;
 	
-	std::vector<int> v42_23 = { 42, 23 };
-	std::vector<int> v42_23_42_23 = { 42, 23, 42, 23 };
+	std::vector<int> v42_23 = {42, 23};
+	std::vector<int> v42_23_42_23 = {42, 23, 42, 23};
 	std::vector<int> vempty;
 	
 	BOOST_TEST( if_( monoid_std_vector::is_abelian_monoid(), true, false ) == false );
@@ -28,9 +27,9 @@ BOOST_AUTO_TEST_CASE( test_monoid_std_vector )
 	auto v = vempty;
 	
 	BOOST_TEST( compose_assign( v, vempty ) == vempty );
-	BOOST_TEST( equal( v, vempty ));
+	BOOST_TEST( equal( v, vempty ) );
 	BOOST_TEST( compose_assign( v, v42_23 ) == v42_23 );
-	BOOST_TEST( equal( v, v42_23 ));
+	BOOST_TEST( equal( v, v42_23 ) );
 	BOOST_TEST( compose_assign( v, v42_23 ) == v42_23_42_23 );
-	BOOST_TEST( equal( v, v42_23_42_23 ));
+	BOOST_TEST( equal( v, v42_23_42_23 ) );
 }

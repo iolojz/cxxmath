@@ -8,30 +8,28 @@
 
 #include "../cxxmath.hpp"
 
-namespace std
-{
+namespace std {
 template<class First, class Second>
-std::ostream &operator<<( std::ostream &os, const std::pair<First, Second> &p )
-{
+std::ostream &operator<<( std::ostream &os, const std::pair<First, Second> &p ) {
 	return os << "{" << cxxmath::first( p ) << ", " << cxxmath::second( p ) << "}";
 }
 
 template<class Symbol, class Allocator>
-std::ostream &operator<<( std::ostream &os, const std::vector<Symbol, Allocator> &v )
-{
-	if( v.empty())
+std::ostream &operator<<( std::ostream &os, const std::vector<Symbol, Allocator> &v ) {
+	if( v.empty() ) {
 		return os << "{}";
+	}
 	
 	auto it = v.begin();
 	os << "{ " << *it;
-	while( ++it != v.end())
+	while( ++it != v.end() ) {
 		os << ", " << *it;
+	}
 	return os << " }";
 }
 }
 
-BOOST_AUTO_TEST_CASE( test_product_monoid_int_int )
-{
+BOOST_AUTO_TEST_CASE( test_product_monoid_int_int ) {
 	using namespace cxxmath;
 	
 	using std_pair_int_int_product = model_std_pair::product<tag_of_t<int>, tag_of_t<int>>;
@@ -64,16 +62,15 @@ BOOST_AUTO_TEST_CASE( test_product_monoid_int_int )
 	BOOST_TEST( pair == pair84_529 );
 }
 
-BOOST_AUTO_TEST_CASE( test_product_monoid_int_vector )
-{
+BOOST_AUTO_TEST_CASE( test_product_monoid_int_vector ) {
 	using namespace cxxmath;
 	using default_std_pair_product = default_product_t<std_pair_tag>;
 	using int_vector_monoid = product_monoid<default_std_pair_product>;
 	using string_vector = std::vector<std::string_view>;
 	
 	string_vector empty;
-	string_vector a = { std::string_view( "a" ) };
-	string_vector aa = { std::string_view( "a" ), std::string_view( "a" ) };
+	string_vector a = {std::string_view( "a" )};
+	string_vector aa = {std::string_view( "a" ), std::string_view( "a" )};
 	
 	auto pair1_empty = make_product<default_std_pair_product>( 1, empty );
 	auto pair42_a = make_product<default_std_pair_product>( 42, a );

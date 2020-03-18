@@ -17,31 +17,30 @@
 
 #include "../models/function_object.hpp"
 
-namespace cxxmath
-{
-namespace concepts
-{
-template<class And, class Or, class Not>
-struct boolean_lattice
-{
+namespace cxxmath {
+namespace concepts {
+template<class And, class Or, class Not> struct boolean_lattice {
 	static constexpr auto and_ = function_object_v<And>;
 	static constexpr auto or_ = function_object_v<Or>;
 	static constexpr auto not_ = function_object_v<Not>;
 };
 
-template<class> struct is_boolean_lattice : std::false_type {};
-template<class And, class Or, class Not> struct is_boolean_lattice<boolean_lattice<And, Or, Not>> : std::true_type {};
+template<class> struct is_boolean_lattice: std::false_type {};
+template<class And, class Or, class Not> struct is_boolean_lattice<boolean_lattice<And, Or, Not>>: std::true_type {};
 
-CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_boolean_lattice)
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_boolean_lattice )
 }
 
-template<class DispatchTag, class BooleanLattice>
-struct models_concept<DispatchTag, BooleanLattice, std::enable_if_t<concepts::is_boolean_lattice_v<BooleanLattice>>>
-{
+template<class Type, class BooleanLattice>
+struct type_models_concept<
+	Type,
+	BooleanLattice,
+	std::enable_if_t<concepts::is_boolean_lattice_v<BooleanLattice>>
+> {
 	static constexpr bool value = (
-		BooleanLattice::and_.template supports_tag<DispatchTag>() &&
-		BooleanLattice::or_.template supports_tag<DispatchTag>() &&
-		BooleanLattice::not_.template supports_tag<DispatchTag>()
+		CXXMATH_IS_VALID( BooleanLattice::and_, std::declval<Type>(), std::declval<Type>() ) &&
+		CXXMATH_IS_VALID( BooleanLattice::or_, std::declval<Type>(), std::declval<Type>() ) &&
+		CXXMATH_IS_VALID( BooleanLattice::not_, std::declval<Type>() )
 	);
 };
 
