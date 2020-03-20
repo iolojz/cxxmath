@@ -117,9 +117,9 @@ public:
 	}
 };
 
-template<class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder>
-class coefficient_composer<free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>> {
-	using r_algebra_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
+template<class Coefficient, class Symbol, class CoefficientComparable, class CoefficientRing, class SymbolTotalOrder>
+class coefficient_composer<free_r_algebra_tag<Coefficient, Symbol, CoefficientComparable, CoefficientRing, SymbolTotalOrder>> {
+	using r_algebra_tag = free_r_algebra_tag<Coefficient, Symbol, CoefficientComparable, CoefficientRing, SymbolTotalOrder>;
 	
 	template<class Part> static constexpr bool is_symbol( const Part &part ) {
 		if constexpr( is_std_variant_v<std::decay_t<Part>> ) {
@@ -525,10 +525,10 @@ public:
 		}
 	};
 	
-	struct scalar_multiply_assign: commutes_with_quotient_map_helper<false> {
+	struct scalar_multiply_in_place: commutes_with_quotient_map_helper<false> {
 		template<class Scalar, class FRA>
 		static constexpr decltype( auto ) apply( Scalar &&s, FRA &fra ) {
-			::cxxmath::scalar_multiply_assign( std::forward<Scalar>( s ), fra );
+			::cxxmath::scalar_multiply_in_place( std::forward<Scalar>( s ), fra );
 			return quotient_map_in_place::apply( fra );
 		}
 	};

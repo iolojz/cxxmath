@@ -22,21 +22,21 @@ struct tag_of<std::vector<Symbol, Allocator>> {
 
 namespace model_std_vector {
 template<class Symbol, class Allocator>
-struct is_abelian: supports_tag_helper<std_vector_tag<Symbol, Allocator>> {
+struct is_abelian {
 	static constexpr std::bool_constant<std::is_empty_v<Symbol>> apply( void ) {
 		return {};
 	}
 };
 
 template<class Symbol, class Allocator>
-struct neutral_element: supports_tag_helper<std_vector_tag<Symbol, Allocator>> {
+struct neutral_element {
 	static std::vector<Symbol, Allocator> apply( void ) {
 		return {};
 	}
 };
 
 template<class Symbol, class Allocator>
-struct compose_assign: supports_tag_helper<std_vector_tag<Symbol, Allocator>> {
+struct compose_assign {
 	static constexpr std::vector<Symbol, Allocator> &
 	apply( std::vector<Symbol, Allocator> &v1, const std::vector<Symbol, Allocator> &v2 ) {
 		v1.insert( v1.end(), v2.begin(), v2.end() );
@@ -51,7 +51,7 @@ struct compose_assign: supports_tag_helper<std_vector_tag<Symbol, Allocator>> {
 };
 
 template<class Symbol, class Allocator>
-struct equal: supports_tag_helper<std_vector_tag<Symbol, Allocator>> {
+struct equal {
 	static constexpr bool apply( const std::vector<Symbol, Allocator> &v1, const std::vector<Symbol, Allocator> &v2 ) {
 		return v1 == v2;
 	}
@@ -76,8 +76,8 @@ struct default_monoid<std_vector_tag<Symbol, Allocator>> {
 };
 
 template<class Symbol, class Allocator>
-struct default_set<std_vector_tag<Symbol, Allocator>> {
-	using type = concepts::set<model_std_vector::equal<Symbol, Allocator>>;
+struct default_comparable<std_vector_tag<Symbol, Allocator>> {
+	using type = concepts::comparable<model_std_vector::equal<Symbol, Allocator>>;
 };
 
 template<class Symbol, class Allocator>

@@ -9,7 +9,7 @@
 
 namespace cxxmath {
 namespace concepts {
-template<class First, class Second, class MakeProduct>
+template<class First, class Second>
 struct product {
 	static constexpr auto first = function_object_v<First>;
 	static constexpr auto second = function_object_v<Second>;
@@ -25,13 +25,13 @@ CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_product )
 template<class Type, class Product>
 struct type_models_concept<Type, Product, std::enable_if_t<concepts::is_product_v<Product>>> {
 	static constexpr bool value = (
-		CXXMATH_IS_VALID( Product::first, std::declval<Type>() ) &&
-		CXXMATH_IS_VALID( Product::second, std::declval<Type>() )
+		std::is_invocable_v<decltype(Product::first), Type> &&
+		std::is_invocable_v<decltype(Product::second), Type>
 	);
 };
 
 namespace impl {
-template<class Product> struct make_product : unsupported_implementation;
+template<class Product> struct make_product : unsupported_implementation {};
 }
 
 template<class Product> static constexpr auto make_product = function_object_v<impl::make_product<Product>>;

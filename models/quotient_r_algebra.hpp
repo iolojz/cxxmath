@@ -28,13 +28,13 @@ template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
 struct quotient_r_algebra;
 
 template<
-	class Coefficient, class Symbol, class CoefficientSet, class CoefficientRing, class SymbolTotalOrder,
+	class Coefficient, class Symbol, class CoefficientComparable, class CoefficientRing, class SymbolTotalOrder,
 	class RAlgebraQuotientSpec
 >
 struct quotient_r_algebra<
-	free_r_algebra_tag<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>, RAlgebraQuotientSpec
+	free_r_algebra_tag<Coefficient, Symbol, CoefficientComparable, CoefficientRing, SymbolTotalOrder>, RAlgebraQuotientSpec
 > {
-	using r_algebra_object = free_r_algebra<Coefficient, Symbol, CoefficientSet, CoefficientRing, SymbolTotalOrder>;
+	using r_algebra_object = free_r_algebra<Coefficient, Symbol, CoefficientComparable, CoefficientRing, SymbolTotalOrder>;
 	using r_algebra_tag = tag_of_t<r_algebra_object>;
 	using r_algebra = typename model_free_r_algebra::free_r_algebra_concepts<r_algebra_tag>::algebra;
 	using cxxmath_dispatch_tag = quotient_r_algebra_tag<tag_of_t<r_algebra_object>, RAlgebraQuotientSpec>;
@@ -73,7 +73,7 @@ public:
 		}
 	};
 	
-	struct negate_in_place: supports_tag_helper<cxxmath_dispatch_tag> {
+	struct negate_in_place {
 		template<class QRA>
 		static constexpr QRA &apply( QRA &qra ) {
 			RAlgebraQuotientSpec::negate_in_place::apply( qra.rep );
@@ -81,7 +81,7 @@ public:
 		}
 	};
 	
-	struct scalar_multiply_assign: supports_tag_helper<cxxmath_dispatch_tag> {
+	struct scalar_multiply_assign {
 		template<class C, class QRA>
 		static constexpr QRA &apply( C &&c, QRA &qra ) {
 			RAlgebraQuotientSpec::scalar_multiply_assign::apply( std::forward<C>( c ), qra.rep );
@@ -89,7 +89,7 @@ public:
 		}
 	};
 	
-	struct add_assign: supports_tag_helper<cxxmath_dispatch_tag> {
+	struct add_assign {
 		template<class QRA1, class QRA2>
 		static constexpr QRA1 &apply( QRA1 &qra1, QRA2 &&qra2 ) {
 			RAlgebraQuotientSpec::add_assign::apply( qra1.rep, std::forward<QRA2>( qra2 ).rep );
@@ -97,7 +97,7 @@ public:
 		}
 	};
 	
-	struct multiply_assign: supports_tag_helper<cxxmath_dispatch_tag> {
+	struct multiply_assign {
 		template<class QRA1, class QRA2>
 		static constexpr QRA1 &apply( QRA1 &qra1, QRA2 &&qra2 ) {
 			RAlgebraQuotientSpec::multiply_assign::apply( qra1.rep, std::forward<QRA2>( qra2 ).rep );
@@ -118,7 +118,7 @@ public:
 		}
 	};
 	
-	struct equal: supports_tag_helper<cxxmath_dispatch_tag> {
+	struct equal {
 		template<class QRA1, class QRA2>
 		static constexpr decltype( auto ) apply( QRA1 &&qra1, QRA2 &&qra2 ) {
 			return RAlgebraQuotientSpec::equal::apply( std::forward<QRA1>( qra1 ).rep, std::forward<QRA2>( qra2 ).rep );
@@ -136,7 +136,7 @@ namespace model_quotient_r_algebra {
 template<class FRATag, class QSpec> class quotient_r_algebra_concepts {
 	using value_type = quotient_r_algebra<FRATag, QSpec>;
 public:
-	using set = concepts::set<typename value_type::equal>;
+	using comparable = concepts::comparable<typename value_type::equal>;
 	using monoid = concepts::assignable_monoid<
 		typename value_type::multiply_assign,
 		typename value_type::one,
@@ -151,7 +151,7 @@ public:
 		typename value_type::negate_in_place
 	>;
 	using ring = concepts::ring<group, monoid>;
-	using module = concepts::assignable_r_module<group, typename value_type::scalar_multiply_assign>;
+	using module = concepts::assignable_r_module<group, typename FRATag::coefficient_ring, typename value_type::scalar_multiply_assign>;
 	using algebra = concepts::r_algebra<module, monoid>;
 	using make = typename value_type::make;
 };
@@ -159,10 +159,10 @@ public:
 
 namespace impl {
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
-struct default_set<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
+struct default_comparable<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
 	using type = typename model_quotient_r_algebra::quotient_r_algebra_concepts<
 		FreeRAlgebraTag, RAlgebraQuotientSpec
-	>::set;
+	>::comparable;
 };
 
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
@@ -187,7 +187,12 @@ struct default_ring<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec
 };
 
 template<class FreeRAlgebraTag, class RAlgebraQuotientSpec>
-struct default_r_module<quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>> {
+struct default_r_module<
+	multitag<
+		typename quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>::coefficient,
+		quotient_r_algebra_tag<FreeRAlgebraTag, RAlgebraQuotientSpec>
+	>
+> {
 	using type = typename model_quotient_r_algebra::quotient_r_algebra_concepts<
 		FreeRAlgebraTag, RAlgebraQuotientSpec
 	>::module;
@@ -239,11 +244,8 @@ template<class SecondQuotientSpec, class FirstQuotientSpec> struct composed_quot
 	using multiplication_is_commutative = typename SecondQuotientSpec::multiplication_is_commutative;
 	
 	CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( negate_in_place )
-	
 	CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( scalar_multiply_assign )
-	
 	CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( add_assign )
-	
 	CXXMATH_DEFINE_COMPOSED_QUOTIENTS_FUNCTION( multiply_assign )
 	
 	struct quotient_map_in_place {

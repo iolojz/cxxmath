@@ -12,28 +12,28 @@ namespace cxxmath {
 namespace concepts {
 template<class Less>
 class total_order {
-	struct less_equal_impl: forward_supported_tags<Less> {
+	struct less_equal_impl {
 		template<class Arg1, class Arg2>
 		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 ) {
 			return not_( Less::apply( arg2, arg1 ) );
 		}
 	};
 	
-	struct equal_impl: forward_supported_tags<Less> {
+	struct equal_impl {
 		template<class Arg1, class Arg2>
 		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 ) {
 			return and_( not_( Less::apply( arg1, arg2 ) ), not_( Less::apply( arg2, arg1 ) ) );
 		}
 	};
 	
-	struct greater_equal_impl: forward_supported_tags<Less> {
+	struct greater_equal_impl {
 		template<class Arg1, class Arg2>
 		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 ) {
 			return not_( Less::apply( arg1, arg2 ) );
 		}
 	};
 	
-	struct greater_impl: forward_supported_tags<Less> {
+	struct greater_impl {
 		template<class Arg1, class Arg2>
 		static constexpr decltype( auto ) apply( const Arg1 &arg1, const Arg2 &arg2 ) {
 			return Less::apply( arg2, arg1 );
@@ -58,7 +58,7 @@ CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_total_order )
 
 template<class Type, class TotalOrder>
 struct type_models_concept<Type, TotalOrder, std::enable_if_t<concepts::is_total_order_v<TotalOrder>>> {
-	static constexpr bool value = CXXMATH_IS_VALID( TotalOrder::less, std::declval<Type>(), std::declval<Type>() );
+	static constexpr bool value = std::is_invocable_v<decltype(TotalOrder::less), Type, Type>;
 };
 
 CXXMATH_DEFINE_CONCEPT( total_order )

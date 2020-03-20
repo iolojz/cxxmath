@@ -10,7 +10,7 @@
 
 namespace cxxmath {
 namespace concepts {
-template<class Equal, class NotEqual = detail::not_equal<Equal>>
+template<class Equal>
 struct comparable {
 	static constexpr auto equal = function_object_v<Equal>;
 	static constexpr auto not_equal = compose( not_, equal );
@@ -25,8 +25,8 @@ CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_comparable )
 template<class Type, class Comparable>
 struct type_models_concept<Type, Comparable, std::enable_if_t<concepts::is_comparable_v<Comparable>>> {
 	static constexpr bool value = (
-		CXXMATH_IS_VALID( Comparable::equal, std::declval<Type>(), std::declval<Type> ) &&
-		CXXMATH_IS_VALID( Comparable::not_equal, std::declval<Type>(), std::declval<Type> )
+		std::is_invocable_v<decltype(Comparable::equal), Type, Type> &&
+		std::is_invocable_v<decltype(Comparable::not_equal), Type, Type>
 	);
 };
 

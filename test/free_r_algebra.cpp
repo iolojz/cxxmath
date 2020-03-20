@@ -10,9 +10,7 @@
 
 BOOST_AUTO_TEST_CASE( test_free_r_algebra ) {
 	using namespace cxxmath;
-	
-	static_assert( models_concept_v<std_pair_tag, std_get_product> );
-	
+
 	using polynomial_tag = free_r_algebra_tag<int, std::string_view>;
 	using polynomial_r_algebra = default_r_algebra_t<polynomial_tag>;
 	
@@ -77,6 +75,6 @@ BOOST_AUTO_TEST_CASE( test_free_r_algebra ) {
 	BOOST_TEST( scalar_multiply( 2, ab42 ) == ab84 );
 	
 	p = ab42;
-	BOOST_TEST( polynomial_r_algebra::scalar_multiply_assign( 2, p ) == ab84 );
+	BOOST_TEST( polynomial_r_algebra::scalar_multiply_in_place( 2, p ) == ab84 );
 	BOOST_TEST( p == ab84 );
 }

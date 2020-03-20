@@ -13,45 +13,32 @@
 #include "../helpers/boolean_v.hpp"
 
 namespace cxxmath {
-struct function_object_tag {
-};
+struct function_object_tag {};
 
 template<class Implementation>
 struct function_object {
 	using cxxmath_dispatch_tag = function_object_tag;
 	using implementation = Implementation;
 	
-	template<class Tag>
-	constexpr bool supports_tag( void ) const {
-		return implementation::template supports_tag<Tag>();
-	}
-	
 	template<class ...Args>
-	constexpr decltype( auto ) operator()( Args &&...args ) const {
+	constexpr auto operator()( Args &&...args ) const
+	/* Make us SFINAE-friendly */ -> decltype(implementation::apply( std::forward<Args>( args )... )) {
 		return implementation::apply( std::forward<Args>( args )... );
 	}
 };
 
 template<class Implementation> static constexpr auto function_object_v = function_object<Implementation>{};
-static constexpr auto identity = function_object_v<impl::identity>;
 
 namespace impl {
 struct identity {
-	template<class>
-	static constexpr bool supports_tag( void ) { return true; }
-	
 	template<class Arg>
-	static constexpr auto apply( Arg &&arg ) {
+	static constexpr auto apply( Arg &&arg )
+	/* Make us SFINAE-friendly */ -> decltype( arg ) {
 		return arg;
 	}
 };
 
 struct unsupported_implementation {
-	template<class>
-	static constexpr bool supports_tag( void ) {
-		return false;
-	}
-	
 	template<class ...Args, class False = void>
 	static constexpr void apply( Args &&... ) {
 		static_assert( false_v<False>, "Unsupported implementation." );
@@ -59,41 +46,28 @@ struct unsupported_implementation {
 };
 
 struct true_implementation {
-	template<class>
-	static constexpr bool supports_tag( void ) {
-		return true;
-	}
-	
 	template<class ...Args>
 	static constexpr bool apply( Args &&... ) { return true; }
 };
 
 struct false_implementation {
-	template<class>
-	static constexpr bool supports_tag( void ) {
-		return true;
-	}
-	
 	template<class ...Args>
 	static constexpr bool apply( Args &&... ) { return false; }
 };
 }
 
+static constexpr auto identity = function_object_v<impl::identity>;
+
 namespace model_function_object {
 template<class Impl1, class Impl2>
 struct composed_function_object {
-	template<class Tag>
-	static constexpr bool supports_tag( void ) {
-		return Impl2::template supports_tag<Tag>();
-	}
-	
 	template<class ...Args>
 	static constexpr decltype( auto ) apply( Args &&...args ) {
 		return Impl1::apply( Impl2::apply( std::forward<Args>( args )... ) );
 	}
 };
 
-struct compose: supports_tag_helper<function_object_tag> {
+struct compose {
 	template<class F1, class F2>
 	static constexpr auto apply( F1, F2 ) noexcept {
 		using i1 = typename F1::implementation;

@@ -128,14 +128,13 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 		}
 	public:
 		template<class FRA> static constexpr FRA &apply( FRA &fra ) {
-			static_assert( is_free_r_algebra_tag_v < tag_of_t < FRA >> );
-			using algebra = typename model_free_r_algebra::free_r_algebra_concepts<tag_of_t < FRA>>::algebra;
+			static_assert( is_free_r_algebra_tag_v<tag_of_t<FRA>> );
+			using algebra = typename model_free_r_algebra::free_r_algebra_concepts<tag_of_t<FRA>>::algebra;
 			
-			auto canonicalized = default_r_algebra_t < tag_of_t < FRA >> ::zero();
+			auto canonicalized = default_r_algebra_t<tag_of_t<FRA>>::zero();
 			for( auto &&monomial : fra.monomials() ) {
-				algebra::add_assign( canonicalized, canonicalize_monomial < tag_of_t < FRA >>
+				algebra::add_assign( canonicalized, canonicalize_monomial<tag_of_t<FRA>>( std::move( monomial ) ) );
 			}
-			( std::move( monomial ) ) );
 			fra = std::move( canonicalized );
 			return fra;
 		}
@@ -144,11 +143,11 @@ template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spe
 	struct equal {
 		template<class FRA1, class FRA2>
 		static constexpr decltype( auto ) apply( FRA1 &&fra1, FRA2 &&fra2 ) {
-			static_assert( std::is_same_v<tag_of_t < FRA1>, tag_of_t < FRA2 >> );
-			static_assert( is_free_r_algebra_tag_v < tag_of_t < FRA1 >> );
-			using set = typename model_free_r_algebra::free_r_algebra_concepts<tag_of_t < FRA1>>::set;
+			static_assert( std::is_same_v<tag_of_t<FRA1>, tag_of_t<FRA2>> );
+			static_assert( is_free_r_algebra_tag_v<tag_of_t<FRA1>> );
+			using comparable = typename model_free_r_algebra::free_r_algebra_concepts<tag_of_t<FRA1>>::comparable;
 			
-			return set::equal( std::forward<FRA1>( fra1 ), std::forward<FRA2>( fra2 ) );
+			return comparable::equal( std::forward<FRA1>( fra1 ), std::forward<FRA2>( fra2 ) );
 		}
 	};
 };

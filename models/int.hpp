@@ -27,31 +27,31 @@ struct one {
 	}
 };
 
-struct add_assign: supports_tag_helper<int> {
+struct add_assign {
 	static constexpr int &apply( int &a, int b ) {
 		return a += b;
 	}
 };
 
-struct negate_in_place: supports_tag_helper<int> {
+struct negate_in_place{
 	static constexpr int &apply( int &a ) {
 		return a = -a;
 	}
 };
 
-struct multiply_assign: supports_tag_helper<int> {
+struct multiply_assign {
 	static constexpr int &apply( int &a, int b ) {
 		return a *= b;
 	}
 };
 
-struct equal: supports_tag_helper<int> {
+struct equal {
 	static constexpr bool apply( int a, int b ) {
 		return a == b;
 	}
 };
 
-struct less: supports_tag_helper<int> {
+struct less {
 	static constexpr bool apply( int a, int b ) {
 		return a < b;
 	}

@@ -10,18 +10,14 @@
 
 namespace cxxmath {
 namespace concepts {
-template<class Tree, class IsArgument>
+template<class Tree, class NodeIsArgument>
 struct mapping_prescription {
 	static_assert( is_tree_v<Tree>, "template parameter 'Tree' is not a tree." );
-	
 	using tree = Tree;
 	
-	static constexpr auto is_terminal = tree::is_terminal;
-	static constexpr auto arity = tree::arity;
-	static constexpr auto children = tree::children;
-	static constexpr auto make_node = tree::make_node;
-	
-	static constexpr auto is_argument = function_object_v<IsArgument>;
+	static constexpr auto visit = Tree::visit;
+	static constexpr auto get_node = Tree::get_node;
+	static constexpr auto node_is_argument = NodeIsArgument;
 };
 
 template<class> struct is_mapping_prescription: std::false_type {};
@@ -32,14 +28,23 @@ CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_mapping_prescription )
 }
 
 template<class DispatchTag, class MappingPrescription>
-struct models_concept<
-	DispatchTag,
+struct type_models_concept<
+	Type,
 	MappingPrescription,
-	std::enable_if_t < concepts::is_mapping_prescription_v<MappingPrescription>>
+	std::enable_if_t<concepts::is_mapping_prescription_v<MappingPrescription>>
 > {
-static constexpr bool value = (
-	models_concept_v<DispatchTag, typename MappingPrescription::tree>
-);
+private:
+	struct node_is_argument_visitor {
+		template<class Node>
+		constexpr void operator()( Node &&node ) const {
+			[[maybe_unused]] auto x = MappingPrescription::node_is_argument( std::forward<Node>( node ) );
+		}
+	};
+public:
+	static constexpr bool value = (
+		models_concept_v<Type, typename MappingPrescription::tree> &&
+		std::is_invocable_v<decltype(MappingPrescription::tree::visit), node_is_argument_visitor, Type>
+	);
 };
 
 CXXMATH_DEFINE_CONCEPT( mapping_prescription )
@@ -48,8 +53,8 @@ template<class MappingPrescriptionTree> using mapping_prescription_tree = typena
 
 namespace impl {
 template<class DispatchTag>
-struct default_tree<DispatchTag, std::enable_if_t < has_default_mapping_prescription_v<DispatchTag>>> {
-using type = mapping_prescription_tree<default_mapping_prescription_t<DispatchTag>>;
+struct default_tree<DispatchTag, std::enable_if_t<has_default_mapping_prescription_v<DispatchTag>>> {
+	using type = mapping_prescription_tree<default_mapping_prescription_t<DispatchTag>>;
 };
 }
 }

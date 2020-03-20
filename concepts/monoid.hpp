@@ -23,17 +23,17 @@ struct is_monoid<monoid<ComposeAssign, Compose, NeutralElement, IsAbelian>>: std
 }
 
 template<class Type, class Monoid>
-struct type_models_concept<DispatchTag, Monoid, std::enable_if_t<concepts::is_monoid_v<Monoid>>> {
+struct type_models_concept<Type, Monoid, std::enable_if_t<concepts::is_monoid_v<Monoid>>> {
 private:
 	static constexpr bool compose_assign_valid =
 		std::is_same_v<typename Monoid::compose_assign::implementation, impl::unsupported_implementation>
-			? true : CXXMATH_IS_VALID( Monoid::compose_assign, std::declval<Type>() );
+			? true : std::is_invocable_v<decltype(Monoid::compose_assign), Type, Type>;
 public:
 	static constexpr bool value = (
 		compose_assign_valid &&
-		CXXMATH_IS_VALID( Monoid::compose, std::declval<Type>(), std::declval<Type>() ) &&
-		CXXMATH_IS_VALID( Monoid::neutral_element ) &&
-		CXXMATH_IS_VALID( Monoid::is_abelian_monoid )
+		std::is_invocable_v<decltype(Monoid::compose), Type, Type> &&
+		std::is_invocable_v<decltype(Monoid::neutral_element)> &&
+		std::is_invocable_v<decltype(Monoid::is_abelian_monoid)>
 	);
 };
 

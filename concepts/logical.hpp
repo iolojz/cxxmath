@@ -28,8 +28,8 @@ CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_logical )
 }
 
 namespace impl {
-template<class DispatchTag> struct make_true : unsupported_implementation;
-template<class DispatchTag> struct make_false : unsupported_implementation;
+template<class DispatchTag> struct make_true : unsupported_implementation {};
+template<class DispatchTag> struct make_false : unsupported_implementation {};
 }
 
 template<class DispatchTag> static constexpr auto make_true = function_object_v<impl::make_true<DispatchTag>>;

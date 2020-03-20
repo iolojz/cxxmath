@@ -32,7 +32,7 @@ std::ostream &operator<<( std::ostream &os, const std::vector<Symbol, Allocator>
 BOOST_AUTO_TEST_CASE( test_product_monoid_int_int ) {
 	using namespace cxxmath;
 	
-	using std_pair_int_int_product = model_std_pair::product<tag_of_t<int>, tag_of_t<int>>;
+	using std_pair_int_int_product = model_std_pair::product;
 	using std_pair_int_int_monoid = product_monoid<std_pair_int_int_product>;
 	
 	using first_monoid = typename default_group_t<int>::monoid_;

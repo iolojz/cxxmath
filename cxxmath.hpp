@@ -28,7 +28,6 @@
 #include "models/function_object.hpp"
 #include "models/int.hpp"
 #include "models/product_monoid.hpp"
-#include "models/product_set.hpp"
 #include "models/quotient_r_algebra.hpp"
 #include "models/std_get.hpp"
 #include "models/std_pair.hpp"

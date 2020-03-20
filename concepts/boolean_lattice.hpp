@@ -38,9 +38,9 @@ struct type_models_concept<
 	std::enable_if_t<concepts::is_boolean_lattice_v<BooleanLattice>>
 > {
 	static constexpr bool value = (
-		CXXMATH_IS_VALID( BooleanLattice::and_, std::declval<Type>(), std::declval<Type>() ) &&
-		CXXMATH_IS_VALID( BooleanLattice::or_, std::declval<Type>(), std::declval<Type>() ) &&
-		CXXMATH_IS_VALID( BooleanLattice::not_, std::declval<Type>() )
+		std::is_invocable_v<decltype(BooleanLattice::and_), Type, Type> &&
+		std::is_invocable_v<decltype(BooleanLattice::or_), Type, Type> &&
+		std::is_invocable_v<decltype(BooleanLattice::not_), Type>
 	);
 };
 

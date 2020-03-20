@@ -49,7 +49,7 @@ struct common_tag<Tag1, Tag2, std::enable_if_t<std::is_same_v<Tag1, Tag2>>> {
 template<class T>
 struct tag_of {
 	using type = typename impl::tag_of<std::decay_t<T>>::type;
-	static_assert( std::is_same_v<type, typename tag_of<type>::type,
+	static_assert( std::is_same_v<type, typename tag_of<type>::type>,
 		"The implementation of tag_of is not idempotent for T" );
 };
 CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE( tag_of )
@@ -82,6 +82,7 @@ template<class ...Args> struct have_common_tag {
 	static constexpr bool value = detail::has_member_type<common_tag<tag_of_t<Args>...>>::value;
 };
 CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( have_common_tag )
+}
 
 #ifdef CXXMATH_ENABLE_IF_TAG_IS
 #error "CXXMATH_ENABLE_IF_TAG_IS is already defined."

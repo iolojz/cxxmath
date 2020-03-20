@@ -7,8 +7,22 @@
 
 namespace cxxmath {
 namespace concepts {
-template<class Visit> struct variant {
+template<class Visit> class variant {
+	struct get_impl {
+		template<class T, class Variant>
+		static constexpr decltype(auto) apply( Variant &&v ) {
+			constexpr auto visitor = [] ( auto &&x ) {
+				if constexpr( std::is_same_v<std::decay_t<decltype(x)>, T> )
+					return x;
+				else
+					throw std::bad_variant_access{};
+			};
+			return visit( visitor, std::forward<Variant>( v ) );
+		}
+	};
+public:
 	static constexpr auto visit = function_object_v<Visit>;
+	static constexpr auto get = function_object_v<get_impl>;
 };
 
 template<class> struct is_variant: std::false_type {};
@@ -20,41 +34,37 @@ CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_variant)
 
 template<class Type, class Variant>
 struct type_models_concept<Type, Variant, std::enable_if_t<concepts::is_variant_v<Variant>>> {
-	static constexpr bool value = CXXMATH_IS_VALID( Variant::visit, [] ( auto && ) {}, std::declval<Type>() );
+private:
+	struct void_action {
+		template<class T> constexpr void operator()( T && ) const {}
+	};
+public:
+	static constexpr bool value = std::is_invocable_v<decltype(Variant::visit), void_action, Type>;
 };
 
 CXXMATH_DEFINE_CONCEPT( variant )
 
-CXXMATH_DEFINE_DEFAULT_DISPATCHED_FUNCTION( visit, variant )
-)
-
 class dispatch_visit {
-	template<std::size_t N, class F, class Arg, class ...Args>
-	constexpr decltype(auto) apply_n( F &&f, Arg &&arg, Args &&...args ) const {
-		if constexpr( sizeof...(Args) + 1 == N )
-			return std::forward<F>( f )( std::forward<Arg>( arg ), std::forward<Args>( args )... );
-		else
-			return apply_n<N>( std::forward<F>( f ), std::forward<Args>( args )... );
-	}
-	
-	template<std::size_t N, class F, class ...VariantsAndResolvedArgs>
-	constexpr decltype(auto) apply( F &&f, VariantsAndResolvedArgs &&...vargs ) const {
-		if constexpr( 2 * N == sizeof...(VariantsAndResolvedArgs) )
-			return apply_n<N>( std::forward<F>( f ), std::forward<VariantsAndResolvedArgs>( vargs )... );
+	template<std::size_t N, class F, class VariantOrResolveArg, class ...NextVariantsAndResolvedArgs>
+	constexpr decltype(auto) apply( F &&f, VariantOrResolveArg &&varg, NextVariantsAndResolvedArgs &&...nvargs ) const {
+		if constexpr( N == sizeof...(VariantsAndResolvedArgs) + 1 )
+			return std::forward<F>( f )(
+				std::forward<VariantOrResolveArg>( varg ),
+				std::forward<VariantsAndResolvedArgs>( vargs )...
+			);
 		else {
-			using variant = template_at_c_t<N, ResolvedArgsAndVariants...>;
 			constexpr iterate = [&f, &args...] ( auto &&x ) {
 				return apply<N + 1>(
 					std::forward<F>( f ),
-					std::forward<VariantsAndResolvedArgs>( args )...,
+					std::forward<NextVariantsAndResolvedArgs>( args )...,
 					std::forward<decltype(x)>( x )
 				);
 			};
 			
-			using dispatch_tag = tag_of_t<>;
+			using dispatch_tag = tag_of_t<VariantOrResolveArg>;
 			return default_variant_t<dispatch_tag>::visit(
 				iterate,
-				std::forward<variant>( function_at_c<N>( std::forward<ResolvedArgsAndVariants>( args )... ) )
+				std::forward<VariantOrResolveArg>( varg )
 			);
 		}
 		
@@ -73,8 +83,16 @@ public:
 		return default_variant_t<dispatch_tag>::visit( iterate, std::forward<Variant>( v ) );
 	}
 };
+static constexpr dispatch_visit visit;
 
-static constexpr default_visit_dispatch visit;
+template<class NodeData> struct dispatch_get_alternative {
+	template<class Variant>
+	constexpr decltype(auto) apply( Variant &&v ) const {
+		using dispatch_tag = tag_of_t<Variant>;
+		return default_variant_v<dispatch_tag>::get<NodeData>( std::forward<Variant>( v ) );
+	}
+};
+static constexpr dispatch_get_alternative get_alternative;
 }
 
 #endif //CXXMATH_CONCEPTS_VARIANT_HPP

@@ -93,9 +93,6 @@ public:
 
 template<class Product, class FirstMonoid = void, class SecondMonoid = void>
 struct compose {
-	template<class DispatchTag>
-	static constexpr bool supports_tag( void ) { return true; }
-	
 	template<class Product1, class Product2>
 	static constexpr auto apply( Product1 &&p1, Product2 &&p2 ) {
 		using first1_tag = tag_of_t<decltype( Product::first( std::forward<Product1>( p1 ) ) )>;
@@ -125,9 +122,6 @@ struct compose {
 
 template<class Product, class FirstMonoid = void, class SecondMonoid = void>
 struct compose_assign {
-	template<class DispatchTag>
-	static constexpr bool supports_tag( void ) { return true; }
-	
 	template<class Product1, class Product2>
 	static constexpr auto apply( Product1 &&p1, Product2 &&p2 ) {
 		using first1_tag = tag_of_t<decltype( Product::first( std::forward<Product1>( p1 ) ) )>;

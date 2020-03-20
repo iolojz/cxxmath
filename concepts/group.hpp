@@ -40,16 +40,16 @@ CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_group )
 }
 
 template<class Type, class Group>
-struct type_models_concept<DispatchTag, Group, std::enable_if_t<concepts::is_group_v<Group>>> {
+struct type_models_concept<Type, Group, std::enable_if_t<concepts::is_group_v<Group>>> {
 private:
 	static constexpr bool invert_in_place_valid =
 		std::is_same_v<typename Group::invert_in_place::implementation, impl::unsupported_implementation>
-			? true : CXXMATH_IS_VALID( Group::invert_in_place, std::declval<Type>() );
+			? true : std::is_invocable_v<decltype(Group::invert_in_place), Type>;
 public:
 	static constexpr bool value = (
 		type_models_concept_v<Type, typename Group::monoid_> &&
 		invert_in_place_valid &&
-		CXXMATH_IS_VALID( Group::inverse, std::declval<Type>() )
+		std::is_invocable_v<decltype(Group::inverse), Type>
 	);
 };
 

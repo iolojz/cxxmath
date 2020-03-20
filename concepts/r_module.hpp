@@ -59,15 +59,15 @@ struct scalar_multiply {
 };
 }
 
-template<class AbelianGroup, class ScalarMultiplyInPlace> using assignable_r_module = r_module<
-	AbelianGroup, ScalarMultiplyInPlace, detail::scalar_multiply<ScalarMultiplyInPlace>>;
-template<class AbelianGroup, class ScalarMultiply> using non_assignable_r_module = r_module<
-	AbelianGroup, impl::unsupported_implementation, ScalarMultiply
+template<class AbelianGroup, class ScalarRing, class ScalarMultiplyInPlace> using assignable_r_module = r_module<
+	AbelianGroup, ScalarRing, ScalarMultiplyInPlace, detail::scalar_multiply<ScalarMultiplyInPlace>>;
+template<class AbelianGroup, class ScalarRing, class ScalarMultiply> using non_assignable_r_module = r_module<
+	AbelianGroup, ScalarRing, impl::unsupported_implementation, ScalarMultiply
 >;
 
 template<class> struct is_r_module: std::false_type {};
-template<class AbelianGroup, class ScalarMultiplyInPlace, class ScalarMultiply>
-struct is_r_module<r_module<AbelianGroup, ScalarMultiplyInPlace, ScalarMultiply>>: std::true_type {};
+template<class AbelianGroup, class ScalarRing, class ScalarMultiplyInPlace, class ScalarMultiply>
+struct is_r_module<r_module<AbelianGroup, ScalarRing, ScalarMultiplyInPlace, ScalarMultiply>>: std::true_type {};
 
 CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_r_module )
 }
@@ -81,13 +81,13 @@ struct type_models_concept<
 private:
 	static constexpr bool scalar_multiply_in_place_is_valid =
 		std::is_same_v<typename RModule::scalar_multiply_in_place::implementation, impl::unsupported_implementation>
-			? true : CXXMATH_IS_VALID( RModule::scalar_multiply_in_place,
-				std::declval<ScalarType>(), std::declval<ModuleType>() );
+			? true : std::is_invocable_v<decltype(RModule::scalar_multiply_in_place), ScalarType, ModuleType>;
 public:
 	static constexpr bool value = (
 		type_models_concept_v<ModuleType, typename RModule::abelian_group> &&
 		type_models_concept_v<ScalarType, typename RModule::scalar_ring> &&
-		CXXMATH_IS_VALID( RModule::scalar_multiply, std::declval<ScalarType>(), std::declval<ModuleType>() )
+		scalar_multiply_in_place_is_valid &&
+		std::is_invocable_v<decltype(RModule::scalar_multiply), ScalarType, ModuleType>
 	);
 };
 

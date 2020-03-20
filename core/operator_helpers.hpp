@@ -10,7 +10,7 @@
 namespace cxxmath {
 namespace impl {
 template<class BinaryOperatorAssign, class IsAbelian>
-struct binary_operator: forward_supported_tags<BinaryOperatorAssign> {
+struct binary_operator {
 	template<class Arg1, class Arg2>
 	static constexpr auto apply( Arg1 &&arg1, Arg2 &&arg2 ) {
 		if constexpr( std::is_rvalue_reference_v<Arg1 &&> ) {
@@ -26,7 +26,7 @@ struct binary_operator: forward_supported_tags<BinaryOperatorAssign> {
 };
 
 template<class BinaryOperator, class Inverse>
-struct binary_operator_invert_second: forward_supported_tags<BinaryOperator, Inverse> {
+struct binary_operator_invert_second {
 	template<class Arg1, class Arg2>
 	static constexpr decltype( auto ) apply( Arg1 &&arg1, Arg2 &&arg2 ) {
 		return BinaryOperator::apply( std::forward<Arg1>( arg1 ), Inverse::apply( std::forward<Arg2>( arg2 ) ) );
@@ -34,12 +34,7 @@ struct binary_operator_invert_second: forward_supported_tags<BinaryOperator, Inv
 };
 
 template<class UnaryOperatorAssign>
-struct unary_operator: forward_supported_tags<UnaryOperatorAssign> {
-	template<class Tag>
-	static constexpr bool supports_tag( void ) {
-		return UnaryOperatorAssign::template supports_tag<Tag>();
-	}
-	
+struct unary_operator {
 	template<class Arg>
 	static constexpr auto apply( Arg &&arg ) {
 		if constexpr( std::is_rvalue_reference_v<Arg &&> ) {

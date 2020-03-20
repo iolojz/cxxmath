@@ -73,7 +73,6 @@ struct less_formal_metric_entry {
 		return less_manifold_indices::apply( fme1.index2, fme2.index2 );
 	}
 };
-}
 
 template<> struct default_total_order<gamma_matrix> {
 	using type = concepts::total_order<impl::less_gamma_matrix>;
@@ -84,6 +83,7 @@ template<> struct default_total_order<formal_metric_entry> {
 template<> struct default_total_order<manifold_dimension> {
 	using type = concepts::total_order<impl::false_implementation>;
 };
+}
 }
 
 namespace {
