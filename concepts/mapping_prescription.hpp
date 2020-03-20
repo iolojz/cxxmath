@@ -10,24 +10,24 @@
 
 namespace cxxmath {
 namespace concepts {
-template<class Tree, class NodeIsArgument>
+template<class Tree, class TerminalNodeDataIsArgument>
 struct mapping_prescription {
 	static_assert( is_tree_v<Tree>, "template parameter 'Tree' is not a tree." );
 	using tree = Tree;
 	
 	static constexpr auto visit = Tree::visit;
 	static constexpr auto get_node = Tree::get_node;
-	static constexpr auto node_is_argument = NodeIsArgument;
+	static constexpr auto terminal_node_data_is_argument = function_object_v<TerminalNodeDataIsArgument>;
 };
 
 template<class> struct is_mapping_prescription: std::false_type {};
-template<class Tree, class IsArgument>
-struct is_mapping_prescription<mapping_prescription<Tree, IsArgument>>: std::true_type {};
+template<class Tree, class TerminalNodeDataIsArgument>
+struct is_mapping_prescription<mapping_prescription<Tree, TerminalNodeDataIsArgument>>: std::true_type {};
 
 CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE( is_mapping_prescription )
 }
 
-template<class DispatchTag, class MappingPrescription>
+template<class Type, class MappingPrescription>
 struct type_models_concept<
 	Type,
 	MappingPrescription,
@@ -37,7 +37,9 @@ private:
 	struct node_is_argument_visitor {
 		template<class Node>
 		constexpr void operator()( Node &&node ) const {
-			[[maybe_unused]] auto x = MappingPrescription::node_is_argument( std::forward<Node>( node ) );
+			[[maybe_unused]] auto x = MappingPrescription::terminal_node_data_is_argument(
+				MappingPrescription::tree::tree_node::data( std::forward<Node>( node ) )
+			);
 		}
 	};
 public:

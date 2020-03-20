@@ -5,6 +5,8 @@
 #ifndef CXXMATH_CONCEPTS_TREE_HPP
 #define CXXMATH_CONCEPTS_TREE_HPP
 
+#include "variant.hpp"
+
 namespace cxxmath {
 namespace concepts {
 template<class Data, class IsTerminal, class Arity, class Children>
@@ -24,7 +26,7 @@ CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_tree_node)
 template<class Variant, class TreeNode>
 struct tree {
 	static_assert( is_variant_v<Variant>, "Given Variant is not a variant" );
-	using tree_node_for_node_data = TreeNodeForNodeData;
+	using tree_node = TreeNode;
 private:
 	struct get_node_impl {
 		template<class NodeData, class Var>
@@ -37,14 +39,26 @@ private:
 					throw std::bad_variant_access{};
 			};
 			return visit( visitor, std::forward<Var>( v ) );
-			
-			return Variant::get<typename tree_node_for_node_data<NodeData>::type>( std::forward<Var>( v ) );
+		}
+	};
+	struct holds_node_impl {
+		template<class NodeData, class Var>
+		static constexpr decltype(auto) apply( Var &&v ) {
+			constexpr auto visitor = [] ( auto &&node ) {
+				using data_type = std::decay_t<decltype(TreeNode::data( std::forward<decltype(node)>( node ) ))>;
+				if constexpr( std::is_same_v<data_type, NodeData> )
+					return true;
+				else
+					return false;
+			};
+			return visit( visitor, std::forward<Var>( v ) );
 		}
 	};
 public:
 	using variant = Variant;
 	static constexpr auto visit = Variant::visit;
 	static constexpr auto get_node = function_object_v<get_node_impl>;
+	static constexpr auto holds_node = function_object_v<holds_node_impl>;
 };
 
 template<class> struct is_tree: std::false_type {};
@@ -90,10 +104,21 @@ template<class NodeData> struct dispatch_get_node {
 	template<class Variant>
 	constexpr decltype(auto) apply( Variant &&v ) const {
 		using dispatch_tag = tag_of_t<Variant>;
-		return default_variant_v<dispatch_tag>::get_node<NodeData>( std::forward<Variant>( v ) );
+		return default_tree_t<dispatch_tag>::get_node.template operator()<NodeData>( std::forward<Variant>( v ) );
 	}
 };
-static constexpr dispatch_get_node get_node;
+template<class NodeData>
+static constexpr dispatch_get_node<NodeData> get_node;
+
+template<class NodeData> struct dispatch_holds_node {
+	template<class Variant>
+	constexpr decltype(auto) apply( Variant &&v ) const {
+		using dispatch_tag = tag_of_t<Variant>;
+		return default_tree_t<dispatch_tag>::holds_node.template operator()<NodeData>( std::forward<Variant>( v ) );
+	}
+};
+template<class NodeData>
+static constexpr dispatch_holds_node<NodeData> holds_node;
 }
 
 #endif //CXXMATH_CONCEPTS_TREE_HPP

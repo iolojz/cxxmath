@@ -33,5 +33,6 @@
 #include "models/std_pair.hpp"
 #include "models/std_string_view.hpp"
 #include "models/std_vector.hpp"
+#include "models/typesafe_tree.hpp"
 
 #endif //CXXMATH_HPP

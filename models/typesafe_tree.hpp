@@ -5,15 +5,27 @@
 #ifndef CXXMATH_MODELS_TYPESAFE_TREE_HPP
 #define CXXMATH_MODELS_TYPESAFE_TREE_HPP
 
+#include "../concepts/mapping_prescription.hpp"
+
 #include <boost/hana.hpp>
+#include <boost/hana/ext/std/tuple.hpp>
+#include <boost/hana/ext/std/integral_constant.hpp>
+
+#include <boost/variant.hpp>
 
 namespace cxxmath {
 struct runtime_arity_t {};
 static constexpr auto runtime_arity = runtime_arity_t{};
 
 template<class NodeDataTypes, class Arities> class typesafe_tree;
-
 template<class T, class TypesafeTree, class = void> class typesafe_tree_node;
+
+template<class NodeDataTypes, class Arities> struct typesafe_tree_tag {
+	using tree_type = typesafe_tree<NodeDataTypes, Arities>;
+};
+template<class TypesafeTree> struct typesafe_tree_node_tag {
+	using tree_type = TypesafeTree;
+};
 
 template<class T> struct is_typesafe_tree: std::false_type {};
 template<class NodeDataTypes, class Arities>
@@ -24,16 +36,17 @@ template<class NodeData, class TypesafeTree>
 class typesafe_tree_node<
 	NodeData,
 	TypesafeTree,
-	std::enable_if<TypesafeTree::is_terminal( boost::hana::type_c<NodeData> )>
+	std::enable_if<TypesafeTree::is_terminal_node_type( boost::hana::type_c<NodeData> )>
 > {
-	static_assert( is_typesafe_tree_v < TypesafeTree > , "Internal error" );
+	static_assert( is_typesafe_tree_v<TypesafeTree> , "Internal error" );
 public:
+	using cxxmath_dispatch_tag = typesafe_tree_node_tag<TypesafeTree>;
 	using tree = TypesafeTree;
 	using node_data = NodeData;
 	
 	typesafe_tree_node( void ) = default;
-	typesafe_tree_node( const node & ) = default;
-	typesafe_tree_node( node && ) = default;
+	typesafe_tree_node( const typesafe_tree_node & ) = default;
+	typesafe_tree_node( typesafe_tree_node && ) = default;
 	
 	typesafe_tree_node &operator=( const typesafe_tree_node & ) = default;
 	typesafe_tree_node &operator=( typesafe_tree_node && ) = default;
@@ -41,23 +54,23 @@ public:
 	template<
 		class Data,
 		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>
-	> typesafe_tree_node( Data &&d ) : data{std::forward<Data>( d )} {}
+	> typesafe_tree_node( Data &&d ) : data{ std::forward<Data>( d ) } {}
+	
+	constexpr bool is_terminal( void ) const { return true; }
+	constexpr std::size_t arity( void ) const { return 0; }
 	
 	node_data data;
 };
 
 template<class NodeDataTypes, class Arities> class typesafe_tree {
-	static constexpr auto node_data_types = NodeDataTypes{};
+	static constexpr auto node_data_types = boost::hana::transform(
+		NodeDataTypes{},
+		boost::hana::typeid_
+	);
 	static constexpr auto arities = Arities{};
 	
 	static_assert( boost::hana::length( node_data_types ) != boost::hana::size_c<0>, "No node types were provided." );
 	static_assert( boost::hana::length( node_data_types ) != boost::hana::length( arities ) );
-	
-	static constexpr auto node_data_types2 = boost::hana::transform(
-		node_data_types,
-		boost::hana::typeid_
-	);
-	static_assert( node_data_types == node_data_types2, "Some node data types are not boost::hana types." );
 	
 	static constexpr auto arity_map = boost::hana::make_map(
 		boost::hana::zip(
@@ -92,27 +105,22 @@ template<class NodeDataTypes, class Arities> class typesafe_tree {
 		boost::hana::template_<boost::variant>
 	))::type;
 	node_variant node;
-	
-	template<class NodeData>
-	static constexpr auto index_of_node_data( void ) {
-		constexpr auto index = boost::hana::index_if(
-			node_variant::types{},
-			[]( auto &&t ) {
-				if constexpr( std::is_same_v<typename decltype(+t)::type, boost::blank> ) {
-					return boost::hana::bool_c<std::is_same_v<NodeData, boost::blank>>;
-				} else {
-					using node_data = typename boost::unwrap_recursive<typename decltype(+t)::type::node_data>::type;
-					return boost::hana::bool_c<std::is_same_v<NodeData, node_data>>;
-				}
-			}
-		);
-		static_assert(
-			boost::hana::is_just( index ),
-			"The given node data type does not appear in the given node variant."
-		);
-		return *index;
-	}
 public:
+	using cxxmath_dispatch_tag = typesafe_tree_tag<NodeDataTypes, Arities>;
+	
+	typesafe_tree( void ) = default;
+	typesafe_tree( typesafe_tree &&other ) = default;
+	typesafe_tree( const typesafe_tree &other ) = default;
+	
+	template<
+	    class ...Args,
+		class = std::enable_if_t<std::is_constructible_v<node_variant, Args &&...>>
+	>
+	typesafe_tree( Args &&...args ) : node{ std::forward<Args>( args )... } {}
+	
+	typesafe_tree &operator=( typesafe_tree &&other ) = default;
+	typesafe_tree &operator=( const typesafe_tree &other ) = default;
+	
 	template<class NodeData>
 	static constexpr auto arity_of_node_type( boost::hana::basic_type<NodeData> ) {
 		return boost::hana::at_key( arity_map, boost::hana::type_c<NodeData> );
@@ -130,45 +138,16 @@ public:
 		}
 	}
 	
-	constexpr decltype( auto ) arity( void ) const {
-		constexpr auto arity_visitor = []( const auto &n ) -> std::variant<std::size_t, runtime_arity_t> {
-			return arity_of_node_type( boost::hana::type_c<std::decay_t<decltype( n )>> );
-		};
-		return boost::apply_visitor( arity_visitor, node );
+	template<class F> decltype( auto ) visit( F &&f ) && {
+		return boost::apply_visitor( std::forward<F>( f ), std::move( node ) );
 	}
 	
-	constexpr decltype( auto ) is_terminal( void ) const {
-		auto arity_ = arity();
-		if( std::holds_alternative<std::size_t>( arity_ ) && std::get<std::size_t>( arity_ ) == 0 ) {
-			return true;
-		}
-		return false;
-	}
-	
-	template<class F> decltype( auto ) visit( F &&f ) const {
+	template<class F> decltype( auto ) visit( F &&f ) & {
 		return boost::apply_visitor( std::forward<F>( f ), node );
 	}
 	
-	template<class NodeData>
-	constexpr bool holds_node( boost::hana::type_c<NodeData> ) const {
-		constexpr auto node_type_index = index_of_node_data<NodeData>();
-		return ( node_type_index == node.which() );
-	}
-	
-	template<class NodeData>
-	static constexpr auto get_node( boost::hana::type_c<NodeData> ) {
-		using nodes = node_variant::types;
-		constexpr auto node_index = index_of_node_data<NodeData>();
-		using node_type = typename boost::mpl::at_c<nodes, node_type_index>::type;
-		return boost::get<node_type>( node );
-	}
-	
-	template<class NodeData>
-	static constexpr auto get_node( boost::hana::type_c<NodeData> ) const {
-		using nodes = node_variant::types;
-		constexpr auto node_index = index_of_node_data<NodeData>();
-		using node_type = typename boost::mpl::at_c<nodes, node_type_index>::type;
-		return boost::get<node_type>( node );
+	template<class F> decltype( auto ) visit( F &&f ) const & {
+		return boost::apply_visitor( std::forward<F>( f ), node );
 	}
 };
 
@@ -176,11 +155,11 @@ template<class NodeData, class TypesafeTree>
 class typesafe_tree_node<
 	NodeData,
 	TypesafeTree,
-	std::enable_if<!TypesafeTree::is_terminal( boost::hana::type_c<NodeData> )>
+	std::enable_if<!TypesafeTree::is_terminal_node_data( boost::hana::type_c<NodeData> )>
 > {
-	static_assert( is_typesafe_tree_v < TypesafeTree > , "Internal error" );
+	static_assert( is_typesafe_tree_v<TypesafeTree> , "Internal error" );
 	static constexpr auto child_container_( void ) {
-		constexpr auto arity = TypesafeTree::arity( boost::hana::type_c<T> );
+		constexpr auto arity = TypesafeTree::arity_for_node_data( boost::hana::type_c<NodeData> );
 		
 		if constexpr( boost::hana::typeid_( arity ) == boost::hana::type_c<runtime_arity_t> ) {
 			return boost::hana::type_c<std::vector<TypesafeTree>>;
@@ -190,6 +169,8 @@ class typesafe_tree_node<
 		}
 	}
 public:
+	using cxxmath_dispatch_tag = typesafe_tree_node_tag<TypesafeTree>;
+	
 	using tree = TypesafeTree;
 	using node_data = NodeData;
 	using child_container = typename decltype(+child_container_())::type;
@@ -205,40 +186,91 @@ public:
 		class Data,
 		class ...Children,
 		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>,
-		class = std::enable_if_t<std::is_constructible_v<child_container, Children &&...>>,
+		class = std::enable_if_t<std::is_constructible_v<child_container, Children &&...>>
 	> typesafe_tree_node( Data &&d, Children &&...ch )
-		: data{d}, children{std::forward<Children>( ch )...} {}
+	: data{ d }, children{ std::forward<Children>( ch )... } {}
+	
+	constexpr bool is_terminal( void ) const { return false; }
+	constexpr decltype(auto) arity( void ) const {
+		return TypesafeTree::arity_for_node_data( boost::hana::type_c<NodeData> );
+	}
 	
 	node_data data;
 	child_container children;
 };
 
 namespace model_typesafe_tree {
+struct data {
+	template<class TypesafeTreeNode>
+	static constexpr decltype(auto) apply( TypesafeTreeNode &&node ) {
+		return std::forward<TypesafeTreeNode>( node ).data;
+	}
+};
+
+struct children {
+	template<class TypesafeTreeNode>
+	static constexpr decltype(auto) apply( TypesafeTreeNode &&node ) {
+		return std::forward<TypesafeTreeNode>( node ).children;
+	}
+};
+
 struct is_terminal {
-	template<class TypesafeTree>
-	static constexpr decltype( auto ) apply( const TypesafeTree &tree ) {
-		return tree.is_terminal();
+	template<class TypesafeTreeNode>
+	static constexpr decltype(auto) apply( const TypesafeTreeNode &node ) {
+		return node.is_terminal();
 	}
 };
 
 struct arity {
-	template<class TypesafeTree>
-	static constexpr decltype( auto ) apply( const TypesafeTree &tree ) {
-		return tree.arity();
+	template<class TypesafeTreeNode>
+	static constexpr decltype(auto) apply( const TypesafeTreeNode &node ) {
+		return node.arity();
 	}
 };
 
-struct apply_to_children {
-	template<class TypesafeTree, class F>
-	static constexpr decltype( auto ) apply( TypesafeTree &&tree, F &&f ) {
-	
+struct visit {
+	template<class F, class TypesafeTree>
+	static constexpr decltype(auto) apply( F &&f, TypesafeTree &&tree ) {
+		return std::forward<TypesafeTree>( tree ).visit( std::forward<F>( f ) );
+	}
+};
+
+template<class TypesafeTreeTag>
+struct make {
+	template<class ...Args>
+	static constexpr decltype(auto) apply( Args &&...args ) {
+		return typename TypesafeTreeTag::tree_type{ std::forward<Args>( args )... };
 	}
 };
 }
 
 namespace impl {
-template<class NodeDataTypes, class Arities> struct default_tree<typesafe_tree<NodeDataTypes, Arities>> {
-	using type =
+template<class NodeDataTypes, class Arities>
+struct default_tree<typesafe_tree_tag<NodeDataTypes, Arities>> {
+	using type = concepts::variant<model_typesafe_tree::visit>;
+};
+
+template<TypesafeTree>
+struct default_tree_node<typesafe_tree_node_tag<TypesafeTree>> {
+	using type = concepts::tree_node<
+		model_typesafe_tree::data,
+		model_typesafe_tree::is_terminal,
+		model_typesafe_tree::arity,
+		model_typesafe_tree::children
+	>;
+};
+
+template<class NodeDataTypes, class Arities>
+struct default_tree<typesafe_tree_tag<NodeDataTypes, Arities>> {
+	using type = concepts::tree<
+	    concepts::variant<model_typesafe_tree::visit>,
+	    concepts::tree_node<
+			model_typesafe_tree::data,
+			model_typesafe_tree::is_terminal,
+			model_typesafe_tree::arity,
+			model_typesafe_tree::children
+		>
+	>;
 };
 }
 }

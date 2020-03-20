@@ -31,3 +31,7 @@ add_test(free_r_algebra free_r_algebra)
 add_executable(clifford clifford.cpp)
 target_link_libraries(clifford)
 add_test(clifford clifford)
+
+add_executable(mapping_prescription mapping_prescription.cpp)
+target_link_libraries(mapping_prescription)
+add_test(mapping_prescription mapping_prescription)
