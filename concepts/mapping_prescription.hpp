@@ -17,7 +17,7 @@ struct mapping_prescription {
 	
 	static constexpr auto visit = Tree::visit;
 	static constexpr auto get_node = Tree::get_node;
-	static constexpr auto terminal_node_data_is_argument = function_object_v<TerminalNodeDataIsArgument>;
+	static constexpr auto terminal_node_data_is_argument = static_function_object<TerminalNodeDataIsArgument>;
 };
 
 template<class> struct is_mapping_prescription: std::false_type {};
@@ -44,7 +44,7 @@ private:
 	};
 public:
 	static constexpr bool value = (
-		models_concept_v<Type, typename MappingPrescription::tree> &&
+		type_models_concept_v<Type, typename MappingPrescription::tree> &&
 		std::is_invocable_v<decltype(MappingPrescription::tree::visit), node_is_argument_visitor, Type>
 	);
 };

@@ -5,7 +5,7 @@
 #ifndef CXXMATH_CORE_OPERATOR_HELPERS_HPP
 #define CXXMATH_CORE_OPERATOR_HELPERS_HPP
 
-#include "../concepts/logical.hpp"
+#include <boost/hana/if.hpp>
 
 namespace cxxmath {
 namespace impl {
@@ -15,7 +15,7 @@ struct binary_operator {
 	static constexpr auto apply( Arg1 &&arg1, Arg2 &&arg2 ) {
 		if constexpr( std::is_rvalue_reference_v<Arg1 &&> ) {
 			return BinaryOperatorAssign::apply( arg1, std::forward<Arg2>( arg2 ) );
-		} else if constexpr( if_( IsAbelian::apply(), std::is_rvalue_reference_v<Arg2 &&>, false ) ) {
+		} else if constexpr( boost::hana::if_( IsAbelian::apply(), std::is_rvalue_reference_v<Arg2 &&>, false ) ) {
 			return BinaryOperatorAssign::apply( arg2, std::forward<Arg1>( arg1 ) );
 		} else {
 			auto copy = std::decay_t<Arg1>{std::forward<Arg1>( arg1 )};
@@ -49,11 +49,11 @@ struct unary_operator {
 }
 
 template<class BinaryOperatorAssign, class IsAbelian> static constexpr auto
-	binary_operator_v = function_object_v<impl::binary_operator<BinaryOperatorAssign, IsAbelian>>;
+	binary_operator_v = static_function_object<impl::binary_operator<BinaryOperatorAssign, IsAbelian>>;
 template<class BinaryOperator, class Inverse> static constexpr auto
-	binary_operator_invert_second_v = function_object_v<impl::binary_operator_invert_second<BinaryOperator, Inverse>>;
+	binary_operator_invert_second_v = static_function_object<impl::binary_operator_invert_second<BinaryOperator, Inverse>>;
 template<class UnaryOperatorAssign> static constexpr auto
-	unary_operator_v = function_object_v<impl::unary_operator<UnaryOperatorAssign>>;
+	unary_operator_v = static_function_object<impl::unary_operator<UnaryOperatorAssign>>;
 }
 
 #endif //CXXMATH_CORE_OPERATOR_HELPERS_HPP

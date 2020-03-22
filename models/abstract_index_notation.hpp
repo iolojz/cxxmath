@@ -190,7 +190,7 @@ class abstract_index_quotient_spec {
 		std::set_intersection(
 			std::begin( si1 ), std::end( si1 ), std::begin( si2 ), std::end( si2 ),
 			std::back_inserter( common_indices ),
-			function_object_v<typename IndexHandler::less_indices>
+			static_function_object<typename IndexHandler::less_indices>
 		);
 		
 		return common_indices;
@@ -247,7 +247,7 @@ class abstract_index_quotient_spec {
 			auto r1_indices = IndexHandler::extract_indices::apply( *( begin.first ) );
 			std::sort(
 				std::begin( r1_indices ), std::end( r1_indices ),
-				function_object_v<typename IndexHandler::less_indices>
+				static_function_object<typename IndexHandler::less_indices>
 			);
 			auto r1_indices_moved = boost::make_iterator_range(
 				std::make_move_iterator( std::begin( r1_indices ) ),
@@ -268,7 +268,7 @@ class abstract_index_quotient_spec {
 			auto r2_indices = IndexHandler::extract_indices::apply( *( begin.second ) );
 			std::sort(
 				r2_indices.begin(), r2_indices.end(),
-				function_object_v<typename IndexHandler::less_indices>
+				static_function_object<typename IndexHandler::less_indices>
 			);
 			auto r2_indices_moved = boost::make_iterator_range(
 				std::make_move_iterator( std::begin( r2_indices ) ),
@@ -457,7 +457,7 @@ class abstract_index_quotient_spec {
 		);
 	}
 public:
-	using multiplication_is_commutative = impl::false_implementation;
+	using multiplication_is_commutative = impl::false_;
 	
 	struct quotient_map_in_place {
 		template<class FRA>

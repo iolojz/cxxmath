@@ -15,19 +15,47 @@
 namespace cxxmath {
 struct function_object_tag {};
 
+namespace detail {
 template<class Implementation>
-struct function_object {
+struct static_function_object {
 	using cxxmath_dispatch_tag = function_object_tag;
 	using implementation = Implementation;
 	
 	template<class ...Args>
 	constexpr auto operator()( Args &&...args ) const
-	/* Make us SFINAE-friendly */ -> decltype(implementation::apply( std::forward<Args>( args )... )) {
+	/* Make us SFINAE-friendly */ -> decltype( implementation::apply( std::forward<Args>( args )... ) ) {
 		return implementation::apply( std::forward<Args>( args )... );
 	}
 };
 
-template<class Implementation> static constexpr auto function_object_v = function_object<Implementation>{};
+template<class Function> class stateful_function_object {
+	using cxxmath_dispatch_tag = function_object_tag;
+	Function function;
+public:
+	template<class F, class = std::enable_if_t<std::is_constructible_v<Function, F &&>>>
+	stateful_function_object( F &&f ) : function{ std::forward<F>( f ) } {}
+	
+	stateful_function_object( void ) = default;
+	stateful_function_object( stateful_function_object && ) = default;
+	stateful_function_object( const stateful_function_object & ) = default;
+	
+	stateful_function_object &operator=( stateful_function_object && ) = default;
+	stateful_function_object &operator=( const stateful_function_object & ) = default;
+	
+	template<class ...Args>
+	constexpr auto operator()( Args &&...args ) const
+	/* Make us SFINAE-friendly */ -> decltype( f( std::forward<Args>( args )... ) ) {
+		return f( std::forward<Args>( args )... );
+	}
+};
+}
+
+template<class Implementation> static constexpr auto static_function_object = detail::static_function_object<Implementation>{};
+
+template<class Function>
+static constexpr auto make_function_object( Function &&f ) {
+	return detail::stateful_function_object<std::decay_t<Function>>( std::forward<Function>( f ) );
+}
 
 namespace impl {
 struct identity {
@@ -38,47 +66,69 @@ struct identity {
 	}
 };
 
+struct true_ {
+	template<class ...Args, class False = void>
+	static constexpr bool apply( Args &&... ) {
+		return true;
+	}
+};
+
+struct false_ {
+	template<class ...Args, class False = void>
+	static constexpr bool apply( Args &&... ) {
+		return false;
+	}
+};
+
 struct unsupported_implementation {
 	template<class ...Args, class False = void>
 	static constexpr void apply( Args &&... ) {
 		static_assert( false_v<False>, "Unsupported implementation." );
 	}
 };
-
-struct true_implementation {
-	template<class ...Args>
-	static constexpr bool apply( Args &&... ) { return true; }
-};
-
-struct false_implementation {
-	template<class ...Args>
-	static constexpr bool apply( Args &&... ) { return false; }
-};
 }
 
-static constexpr auto identity = function_object_v<impl::identity>;
+static constexpr auto identity = static_function_object<impl::identity>;
+static constexpr auto lazy_true = static_function_object<impl::true_>;
+static constexpr auto lazy_false = static_function_object<impl::false_>;
 
 namespace model_function_object {
-template<class Impl1, class Impl2>
+template<class FunctionObject1, class FunctionObject2>
 struct composed_function_object {
+	using cxxmath_dispatch_tag = function_object_tag;
+	FunctionObject1 function1;
+	FunctionObject2 function2;
+	
+	template<class F1, class F2>
+	composed_function_object( F1 &&f1, F2 &&f2 )
+	: function1{ std::forward<F1>( f1 ) }, function2{ std::forward<F2>( f2 ) } {}
+	
+	composed_function_object( void ) = default;
+	composed_function_object( composed_function_object && ) = default;
+	composed_function_object( const composed_function_object & ) = default;
+	
+	composed_function_object &operator=( composed_function_object && ) = default;
+	composed_function_object &operator=( const composed_function_object & ) = default;
+	
 	template<class ...Args>
-	static constexpr decltype( auto ) apply( Args &&...args ) {
-		return Impl1::apply( Impl2::apply( std::forward<Args>( args )... ) );
+	constexpr auto operator()( Args &&...args ) const
+	/* Make us SFINAE-friendly */ -> decltype( function1( function2( std::forward<Args>( args )... ) ) ) {
+		return function1( function2( std::forward<Args>( args )... ) );
 	}
 };
 
 struct compose {
 	template<class F1, class F2>
-	static constexpr auto apply( F1, F2 ) noexcept {
-		using i1 = typename F1::implementation;
-		using i2 = typename F2::implementation;
-		
-		return function_object_v<composed_function_object<i1, i2>>;
+	static constexpr auto apply( F1 &&f1, F2 &&f2 ) noexcept {
+		return composed_function_object<std::decay_t<F1>, std::decay_t<F2>>(
+			std::forward<F1>( f1 ),
+			std::forward<F2>( f2 )
+		);
 	}
 };
 
 struct is_abelian {
-	static constexpr std::false_type apply( void ) noexcept { return {}; }
+	static constexpr bool apply( void ) noexcept { return false; }
 };
 
 struct neutral_element {
@@ -90,7 +140,9 @@ namespace impl {
 template<>
 struct default_monoid<function_object_tag> {
 	using type = concepts::non_assignable_monoid<
-		model_function_object::compose, model_function_object::is_abelian, model_function_object::neutral_element
+		model_function_object::compose,
+		model_function_object::is_abelian,
+		model_function_object::neutral_element
 	>;
 };
 }

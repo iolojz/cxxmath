@@ -12,7 +12,7 @@ namespace impl {
 template<class DispatchTag, class = void> struct make : unsupported_implementation {};
 }
 
-template<class DispatchTag> static constexpr auto make = function_object_v<impl::make<DispatchTag>>;
+template<class DispatchTag> static constexpr auto make = static_function_object<impl::make<DispatchTag>>;
 }
 
 #endif //CXXMATH_CORE_MAKE_HPP

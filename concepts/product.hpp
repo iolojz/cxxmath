@@ -11,8 +11,8 @@ namespace cxxmath {
 namespace concepts {
 template<class First, class Second>
 struct product {
-	static constexpr auto first = function_object_v<First>;
-	static constexpr auto second = function_object_v<Second>;
+	static constexpr auto first = static_function_object<First>;
+	static constexpr auto second = static_function_object<Second>;
 };
 
 template<class> struct is_product: std::false_type {};
@@ -34,7 +34,7 @@ namespace impl {
 template<class Product> struct make_product : unsupported_implementation {};
 }
 
-template<class Product> static constexpr auto make_product = function_object_v<impl::make_product<Product>>;
+template<class Product> static constexpr auto make_product = static_function_object<impl::make_product<Product>>;
 
 CXXMATH_DEFINE_CONCEPT( product )
 

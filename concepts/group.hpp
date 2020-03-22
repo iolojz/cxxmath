@@ -19,8 +19,8 @@ struct group {
 	static constexpr auto compose_assign = monoid_::compose_assign;
 	static constexpr auto is_abelian_group = monoid_::is_abelian_monoid;
 	static constexpr auto neutral_element = monoid_::neutral_element;
-	static constexpr auto invert_in_place = function_object_v<InvertInPlace>;
-	static constexpr auto inverse = function_object_v<Inverse>;
+	static constexpr auto invert_in_place = static_function_object<InvertInPlace>;
+	static constexpr auto inverse = static_function_object<Inverse>;
 };
 
 template<class Monoid, class InvertInPlace> using assignable_group = group<

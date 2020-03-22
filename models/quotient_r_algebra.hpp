@@ -140,13 +140,13 @@ public:
 	using monoid = concepts::assignable_monoid<
 		typename value_type::multiply_assign,
 		typename value_type::one,
-		impl::false_implementation
+		impl::false_
 	>;
 	using group = concepts::assignable_group<
 		concepts::assignable_monoid<
 			typename value_type::add_assign,
 			typename value_type::zero,
-			impl::true_implementation
+			impl::true_
 		>,
 		typename value_type::negate_in_place
 	>;

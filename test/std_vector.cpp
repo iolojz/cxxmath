@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE( test_monoid_std_vector ) {
 	std::vector<int> v42_23_42_23 = {42, 23, 42, 23};
 	std::vector<int> vempty;
 	
-	BOOST_TEST( if_( monoid_std_vector::is_abelian_monoid(), true, false ) == false );
+	BOOST_TEST( boost::hana::if_( monoid_std_vector::is_abelian_monoid(), true, false ) == false );
 	
 	BOOST_TEST( monoid_std_vector::neutral_element() == vempty );
 	

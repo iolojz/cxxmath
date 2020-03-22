@@ -28,7 +28,7 @@ struct dispatch_ ## function { \
         return default_ ## concept_ ## _t<dispatch_tag>::function( std::forward<Args>( args )... ); \
     } \
 }; \
-static constexpr auto function = function_object_v<dispatch_ ## function>;
+static constexpr auto function = static_function_object<dispatch_ ## function>;
 
 #ifdef CXXMATH_DEFINE_DEFAULT_DISPATCHED_UNARY_OPERATOR
 #error "CXXMATH_DEFINE_DEFAULT_DISPATCHED_UNARY_OPERATOR is already defined"

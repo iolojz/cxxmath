@@ -12,7 +12,7 @@ BOOST_AUTO_TEST_CASE( test_ring_int ) {
 	using namespace cxxmath;
 	using ring_int = default_ring_t<int>;
 	
-	BOOST_TEST( if_( ring_int::is_abelian_ring(), true, false ) );
+	BOOST_TEST( boost::hana::if_( ring_int::is_abelian_ring(), true, false ) );
 	
 	BOOST_TEST( add( 42, 23 ) == 42 + 23 );
 	BOOST_TEST( subtract( 42, 23 ) == 42 - 23 );

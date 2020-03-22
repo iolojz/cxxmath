@@ -11,10 +11,10 @@ namespace cxxmath {
 namespace concepts {
 template<class Data, class IsTerminal, class Arity, class Children>
 struct tree_node {
-	static constexpr auto data = function_object_v<Data>;
-	static constexpr auto is_terminal = function_object_v<IsTerminal>;
-	static constexpr auto arity = function_object_v<Arity>;
-	static constexpr auto children = function_object_v<Children>;
+	static constexpr auto data = static_function_object<Data>;
+	static constexpr auto is_terminal = static_function_object<IsTerminal>;
+	static constexpr auto arity = static_function_object<Arity>;
+	static constexpr auto children = static_function_object<Children>;
 };
 
 template<class> struct is_tree_node: std::false_type {};
@@ -28,21 +28,23 @@ struct tree {
 	static_assert( is_variant_v<Variant>, "Given Variant is not a variant" );
 	using tree_node = TreeNode;
 private:
+	template<class NodeData>
 	struct get_node_impl {
-		template<class NodeData, class Var>
+		template<class Var>
 		static constexpr decltype(auto) apply( Var &&v ) {
-			constexpr auto visitor = [] ( auto &&node ) {
+			constexpr auto predicate = [] ( auto &&node ) {
 				using data_type = std::decay_t<decltype(TreeNode::data( std::forward<decltype(node)>( node ) ))>;
 				if constexpr( std::is_same_v<data_type, NodeData> )
-					return node;
+					return boost::hana::true_c;
 				else
-					throw std::bad_variant_access{};
+					return boost::hana::false_c;
 			};
-			return visit( visitor, std::forward<Var>( v ) );
+			return Variant::get_alternative_with_predicate( predicate, std::forward<Var>( v ) );
 		}
 	};
+	template<class NodeData>
 	struct holds_node_impl {
-		template<class NodeData, class Var>
+		template<class Var>
 		static constexpr decltype(auto) apply( Var &&v ) {
 			constexpr auto visitor = [] ( auto &&node ) {
 				using data_type = std::decay_t<decltype(TreeNode::data( std::forward<decltype(node)>( node ) ))>;
@@ -57,8 +59,11 @@ private:
 public:
 	using variant = Variant;
 	static constexpr auto visit = Variant::visit;
-	static constexpr auto get_node = function_object_v<get_node_impl>;
-	static constexpr auto holds_node = function_object_v<holds_node_impl>;
+	
+	template<class NodeData>
+	static constexpr auto get_node = static_function_object<get_node_impl<NodeData>>;
+	template<class NodeData>
+	static constexpr auto holds_node = static_function_object<holds_node_impl<NodeData>>;
 };
 
 template<class> struct is_tree: std::false_type {};
@@ -104,7 +109,7 @@ template<class NodeData> struct dispatch_get_node {
 	template<class Variant>
 	constexpr decltype(auto) apply( Variant &&v ) const {
 		using dispatch_tag = tag_of_t<Variant>;
-		return default_tree_t<dispatch_tag>::get_node.template operator()<NodeData>( std::forward<Variant>( v ) );
+		return default_tree_t<dispatch_tag>::template get_node<NodeData>( std::forward<Variant>( v ) );
 	}
 };
 template<class NodeData>
@@ -114,7 +119,7 @@ template<class NodeData> struct dispatch_holds_node {
 	template<class Variant>
 	constexpr decltype(auto) apply( Variant &&v ) const {
 		using dispatch_tag = tag_of_t<Variant>;
-		return default_tree_t<dispatch_tag>::holds_node.template operator()<NodeData>( std::forward<Variant>( v ) );
+		return default_tree_t<dispatch_tag>::template holds_node<NodeData>( std::forward<Variant>( v ) );
 	}
 };
 template<class NodeData>

@@ -24,14 +24,14 @@ struct r_module {
 	static constexpr auto negate = abelian_group::inverse;
 	static constexpr auto negate_in_place = abelian_group::invert_in_place;
 	
-	static constexpr auto scalar_multiply = function_object_v<ScalarMultiply>;
-	static constexpr auto scalar_multiply_in_place = function_object_v<ScalarMultiplyInPlace>;
+	static constexpr auto scalar_multiply = static_function_object<ScalarMultiply>;
+	static constexpr auto scalar_multiply_in_place = static_function_object<ScalarMultiplyInPlace>;
 private:
 	using add_impl = typename std::decay_t<decltype( add )>::implementation;
 	using add_assign_impl = typename std::decay_t<decltype( add_assign )>::implementation;
 	using negate_impl = typename std::decay_t<decltype( negate )>::implementation;
 public:
-	static constexpr auto subtract_assign = function_object_v<
+	static constexpr auto subtract_assign = static_function_object<
 		std::conditional_t<
 			std::is_same_v<
 				add_assign_impl, impl::unsupported_implementation

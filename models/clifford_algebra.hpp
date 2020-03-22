@@ -19,7 +19,7 @@ struct less_from_total_order {
 }
 
 template<class CoefficientRing, class BilinearForm> struct clifford_quotient_spec {
-	using multiplication_is_commutative = impl::false_implementation;
+	using multiplication_is_commutative = impl::false_;
 	
 	struct negate_in_place: commutes_with_quotient_map_helper<true> {
 		template<class FRA> static constexpr decltype( auto ) apply( FRA &&fra ) {

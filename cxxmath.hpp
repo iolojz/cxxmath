@@ -9,9 +9,7 @@
 #include "core/dispatch_tags.hpp"
 #include "core/function_dispatch.hpp"
 
-#include "concepts/boolean_lattice.hpp"
 #include "concepts/group.hpp"
-#include "concepts/logical.hpp"
 #include "concepts/monoid.hpp"
 #include "concepts/product.hpp"
 #include "concepts/r_algebra.hpp"
@@ -21,7 +19,6 @@
 #include "concepts/total_order.hpp"
 
 #include "models/abstract_index_notation.hpp"
-#include "models/bool.hpp"
 #include "models/clifford_algebra.hpp"
 #include "models/free_monoid.hpp"
 #include "models/free_r_algebra.hpp"

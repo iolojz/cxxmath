@@ -21,15 +21,6 @@ struct variant_has_alternative<T, std::variant<Alternatives...>>
 	: public std::disjunction<std::is_same<T, Alternatives>...> {
 };
 
-template<class T, class ...Alternatives>
-static constexpr bool holds_alternative( const std::variant<Alternatives...> &v ) noexcept {
-	if constexpr( variant_has_alternative_v<T, std::variant<Alternatives...>> ) {
-		return std::holds_alternative<T>( v );
-	} else {
-		return false;
-	}
-}
-
 template<class Tag, class Variant> struct select_type_with_tag {};
 CXXMATH_DEFINE_TYPE_ALIAS_TEMPLATE( select_type_with_tag )
 

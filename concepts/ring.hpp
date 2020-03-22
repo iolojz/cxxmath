@@ -32,7 +32,7 @@ private:
 	using add_assign_impl = typename std::decay_t<decltype( add_assign )>::implementation;
 	using negate_impl = typename std::decay_t<decltype( negate )>::implementation;
 public:
-	static constexpr auto subtract_assign = function_object_v < std::conditional_t<
+	static constexpr auto subtract_assign = static_function_object < std::conditional_t<
 		std::is_same_v<
 			add_assign_impl, impl::unsupported_implementation
 		>, impl::unsupported_implementation, impl::binary_operator_invert_second < add_assign_impl, negate_impl

@@ -40,14 +40,14 @@ class total_order {
 		}
 	};
 public:
-	static constexpr auto less = function_object_v<Less>;
+	static constexpr auto less = static_function_object<Less>;
 	
-	static constexpr auto less_equal = function_object_v<less_equal_impl>;
-	static constexpr auto equal = function_object_v<equal_impl>;
-	static constexpr auto greater_equal = function_object_v<greater_equal_impl>;
-	static constexpr auto greater = function_object_v<greater_impl>;
+	static constexpr auto less_equal = static_function_object<less_equal_impl>;
+	static constexpr auto equal = static_function_object<equal_impl>;
+	static constexpr auto greater_equal = static_function_object<greater_equal_impl>;
+	static constexpr auto greater = static_function_object<greater_impl>;
 	
-	static constexpr auto not_equal = compose( not_, equal );
+	static constexpr auto not_equal = compose( make_function_object( boost::hana::not_ ), equal );
 };
 
 template<class> struct is_total_order: std::false_type {};

@@ -5,15 +5,14 @@
 #ifndef CXXMATH_CONCEPTS_COMPARABLE_HPP
 #define CXXMATH_CONCEPTS_COMPARABLE_HPP
 
-#include "logical.hpp"
 #include "monoid.hpp"
 
 namespace cxxmath {
 namespace concepts {
 template<class Equal>
 struct comparable {
-	static constexpr auto equal = function_object_v<Equal>;
-	static constexpr auto not_equal = compose( not_, equal );
+	static constexpr auto equal = static_function_object<Equal>;
+	static constexpr auto not_equal = compose( make_function_object( boost::hana::not_ ), equal );
 };
 
 template<class> struct is_comparable: std::false_type {};

@@ -12,10 +12,10 @@ namespace cxxmath {
 namespace concepts {
 template<class ComposeAssign, class Compose, class NeutralElement, class IsAbelian>
 struct monoid {
-	static constexpr auto compose_assign = function_object_v<ComposeAssign>;
-	static constexpr auto compose = function_object_v<Compose>;
-	static constexpr auto neutral_element = function_object_v<NeutralElement>;
-	static constexpr auto is_abelian_monoid = function_object_v<IsAbelian>;
+	static constexpr auto compose_assign = static_function_object<ComposeAssign>;
+	static constexpr auto compose = static_function_object<Compose>;
+	static constexpr auto neutral_element = static_function_object<NeutralElement>;
+	static constexpr auto is_abelian_monoid = static_function_object<IsAbelian>;
 };
 
 template<class ComposeAssign, class Compose, class NeutralElement, class IsAbelian>
