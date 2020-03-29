@@ -5,11 +5,10 @@
 #ifndef CXXMATH_MODELS_TYPESAFE_TREE_HPP
 #define CXXMATH_MODELS_TYPESAFE_TREE_HPP
 
-#include "../concepts/mapping_prescription.hpp"
-
 #include <boost/hana.hpp>
 #include <boost/hana/ext/std/tuple.hpp>
-#include <boost/hana/ext/std/integral_constant.hpp>
+
+#include "../concepts/tree.hpp"
 
 #include "boost_variant.hpp"
 #include "../helpers/boost_variant.hpp"
@@ -77,7 +76,7 @@ public:
 		return data != other.data;
 	}
 	
-	constexpr bool is_terminal( void ) const { return true; }
+	constexpr auto is_terminal( void ) const { return boost::hana::true_c; }
 	constexpr std::size_t arity( void ) const { return 0; }
 	
 	node_data data;
@@ -217,7 +216,7 @@ public:
 		return data != other.data || children != other.children;
 	}
 	
-	constexpr bool is_terminal( void ) const { return false; }
+	constexpr auto is_terminal( void ) const { return boost::hana::false_c; }
 	constexpr decltype(auto) arity( void ) const {
 		return TypesafeTree::arity_for_node_data( boost::hana::type_c<NodeData> );
 	}
@@ -265,12 +264,11 @@ struct visit {
 	}
 };
 
-struct get_alternative_with_predicate {
-	template<class UnaryPredicate, class TypesafeTree>
-	static constexpr decltype(auto) apply( UnaryPredicate &&p, TypesafeTree &&tree ) {
-		return concepts::boost_variant::get_alternative_with_predicate(
-			std::forward<UnaryPredicate>( p ),
-			std::forward<TypesafeTree>( tree ).variant()
+struct types {
+	template<class TypesafeTree>
+	static constexpr decltype(auto) apply( TypesafeTree &&tree ) {
+		return boost::hana::to_tuple(
+			typename std::decay_t<decltype(std::forward<TypesafeTree>( tree ).variant())>::types{}
 		);
 	}
 };
@@ -291,8 +289,8 @@ using typesafe_tree_comparable = concepts::comparable<
 
 template<class NodeDataTypes, class Arities>
 using typesafe_tree_variant = concepts::variant<
-    model_typesafe_tree::visit,
-    model_typesafe_tree::get_alternative_with_predicate
+	model_typesafe_tree::types,
+    model_typesafe_tree::visit
 >;
 
 template<class TypesafeTree>

@@ -7,18 +7,18 @@
 
 namespace cxxmath {
 namespace concepts {
-template<class Visit, class GetAlternativeWithPredicate> class variant {
+template<class Types, class Visit> class variant {
 	template<class T>
 	struct get_alternative_impl {
 		template<class Variant>
 		static constexpr decltype(auto) apply( Variant &&v ) {
-			constexpr auto predicate = [] ( auto &&x ) {
-				if( std::is_same_v<std::decay_t<decltype(x)>, T> )
-					return std::true_type{};
-				else
-					return std::false_type{};
+			constexpr auto visitor = [] ( auto &&x ) -> T {
+				if constexpr ( std::is_same_v<std::decay_t<decltype(x)>, T> )
+					return x;
+				
+				throw std::bad_variant_access();
 			};
-			return get_with_predicate( predicate, std::forward<Variant>( v ) );
+			return visit( visitor, std::forward<Variant>( v ) );
 		}
 	};
 	template<class T>
@@ -35,8 +35,8 @@ template<class Visit, class GetAlternativeWithPredicate> class variant {
 		}
 	};
 public:
+	static constexpr auto types = static_function_object<Types>;
 	static constexpr auto visit = static_function_object<Visit>;
-	static constexpr auto get_alternative_with_predicate = static_function_object<GetAlternativeWithPredicate>;
 	
 	template<class T>
 	static constexpr auto get_alternative = static_function_object<get_alternative_impl<T>>;
