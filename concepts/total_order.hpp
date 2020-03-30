@@ -47,7 +47,7 @@ public:
 	static constexpr auto greater_equal = static_function_object<greater_equal_impl>;
 	static constexpr auto greater = static_function_object<greater_impl>;
 	
-	static constexpr auto not_equal = compose( make_function_object( boost::hana::not_ ), equal );
+	static constexpr auto not_equal = compose( not_, equal );
 };
 
 template<class> struct is_total_order: std::false_type {};

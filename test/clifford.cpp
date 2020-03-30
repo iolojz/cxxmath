@@ -81,7 +81,7 @@ template<> struct default_total_order<formal_metric_entry> {
 	using type = concepts::total_order<impl::less_formal_metric_entry>;
 };
 template<> struct default_total_order<manifold_dimension> {
-	using type = concepts::total_order<impl::false_implementation>;
+	using type = concepts::total_order<impl::false_>;
 };
 }
 }

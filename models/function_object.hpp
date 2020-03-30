@@ -12,6 +12,8 @@
 
 #include "../helpers/boolean_v.hpp"
 
+#include <boost/hana/not.hpp>
+
 namespace cxxmath {
 struct function_object_tag {};
 
@@ -29,23 +31,22 @@ struct static_function_object {
 };
 
 template<class Function> class stateful_function_object {
-	using cxxmath_dispatch_tag = function_object_tag;
 	Function function;
 public:
+	using cxxmath_dispatch_tag = function_object_tag;
 	template<class F, class = std::enable_if_t<std::is_constructible_v<Function, F &&>>>
-	stateful_function_object( F &&f ) : function{ std::forward<F>( f ) } {}
+	constexpr stateful_function_object( F &&f ) : function{ std::forward<F>( f ) } {}
 	
-	stateful_function_object( void ) = default;
-	stateful_function_object( stateful_function_object && ) = default;
-	stateful_function_object( const stateful_function_object & ) = default;
+	constexpr stateful_function_object( stateful_function_object && ) = default;
+	constexpr stateful_function_object( const stateful_function_object & ) = default;
 	
-	stateful_function_object &operator=( stateful_function_object && ) = default;
-	stateful_function_object &operator=( const stateful_function_object & ) = default;
+	constexpr stateful_function_object &operator=( stateful_function_object && ) = default;
+	constexpr stateful_function_object &operator=( const stateful_function_object & ) = default;
 	
 	template<class ...Args>
 	constexpr auto operator()( Args &&...args ) const
-	/* Make us SFINAE-friendly */ -> decltype( f( std::forward<Args>( args )... ) ) {
-		return f( std::forward<Args>( args )... );
+	/* Make us SFINAE-friendly */ -> decltype( function( std::forward<Args>( args )... ) ) {
+		return function( std::forward<Args>( args )... );
 	}
 };
 }
@@ -92,6 +93,10 @@ static constexpr auto identity = static_function_object<impl::identity>;
 static constexpr auto lazy_true = static_function_object<impl::true_>;
 static constexpr auto lazy_false = static_function_object<impl::false_>;
 
+static constexpr auto and_ = make_function_object( boost::hana::and_ );
+static constexpr auto or_ = make_function_object( boost::hana::not_ );
+static constexpr auto not_ = make_function_object( boost::hana::not_ );
+
 namespace model_function_object {
 template<class FunctionObject1, class FunctionObject2>
 struct composed_function_object {
@@ -100,15 +105,14 @@ struct composed_function_object {
 	FunctionObject2 function2;
 	
 	template<class F1, class F2>
-	composed_function_object( F1 &&f1, F2 &&f2 )
+	constexpr composed_function_object( F1 &&f1, F2 &&f2 )
 	: function1{ std::forward<F1>( f1 ) }, function2{ std::forward<F2>( f2 ) } {}
 	
-	composed_function_object( void ) = default;
-	composed_function_object( composed_function_object && ) = default;
-	composed_function_object( const composed_function_object & ) = default;
+	constexpr composed_function_object( composed_function_object && ) = default;
+	constexpr composed_function_object( const composed_function_object & ) = default;
 	
-	composed_function_object &operator=( composed_function_object && ) = default;
-	composed_function_object &operator=( const composed_function_object & ) = default;
+	constexpr composed_function_object &operator=( composed_function_object && ) = default;
+	constexpr composed_function_object &operator=( const composed_function_object & ) = default;
 	
 	template<class ...Args>
 	constexpr auto operator()( Args &&...args ) const

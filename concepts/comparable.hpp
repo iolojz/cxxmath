@@ -12,7 +12,7 @@ namespace concepts {
 template<class Equal>
 struct comparable {
 	static constexpr auto equal = static_function_object<Equal>;
-	static constexpr auto not_equal = compose( make_function_object( boost::hana::not_ ), equal );
+	static constexpr auto not_equal = compose( not_, equal );
 };
 
 template<class> struct is_comparable: std::false_type {};
