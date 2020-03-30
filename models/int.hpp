@@ -5,7 +5,7 @@
 #ifndef CXXMATH_MODELS_INT_HPP
 #define CXXMATH_MODELS_INT_HPP
 
-#include "concepts/comparable.hpp"
+#include "../concepts/comparable.hpp"
 
 namespace cxxmath {
 namespace model_int {
