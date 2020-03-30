@@ -369,7 +369,7 @@ operator<<( std::ostream &os, const TypesafeTreeNode &node ) {
 				os << ", " << *it;
 		}
 		
-		return os;
+		return os << " ]";
 	}
 }
 

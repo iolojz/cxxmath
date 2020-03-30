@@ -17,8 +17,14 @@ struct times_node_data {
 struct x_node_data {
 	bool operator==( const x_node_data & ) const { return true; }
 };
+struct y_node_data {
+	bool operator==( const y_node_data & ) const { return true; }
+};
 struct delta_x_node_data {
 	bool operator==( const delta_x_node_data & ) const { return true; }
+};
+struct delta_y_node_data {
+	bool operator==( const delta_y_node_data & ) const { return true; }
 };
 
 std::ostream &operator<<( std::ostream &os, const plus_node_data & ) {
@@ -30,39 +36,68 @@ std::ostream &operator<<( std::ostream &os, const times_node_data & ) {
 std::ostream &operator<<( std::ostream &os, const x_node_data & ) {
 	return os << "x";
 }
+std::ostream &operator<<( std::ostream &os, const y_node_data & ) {
+	return os << "y";
+}
 std::ostream &operator<<( std::ostream &os, const delta_x_node_data & ) {
 	return os << "\\Delta x";
 }
+std::ostream &operator<<( std::ostream &os, const delta_y_node_data & ) {
+	return os << "\\Delta y";
+}
 
-using node_data_types = std::tuple<int, plus_node_data, times_node_data, x_node_data, delta_x_node_data>;
+using node_data_types = std::tuple<
+	int,
+	plus_node_data, times_node_data,
+	x_node_data, delta_x_node_data,
+	y_node_data, delta_y_node_data
+>;
 using node_arities = std::tuple<
 	std::integral_constant<int, 0>,
-	std::integral_constant<int, 2>,
-	std::integral_constant<int, 2>,
-	std::integral_constant<int, 0>,
-	std::integral_constant<int, 0>
+	std::integral_constant<int, 2>, std::integral_constant<int, 2>,
+	std::integral_constant<int, 0>, std::integral_constant<int, 0>,
+	std::integral_constant<int, 0>, std::integral_constant<int, 0>
 >;
 using tree_type = cxxmath::typesafe_tree<node_data_types, node_arities>;
 
+using derivative_tree_type = cxxmath::typesafe_tree<node_data_types, node_arities>;
+using derivative_type = std::array<tree_type, 2>;
+
 struct node_derivative_impl {
-	tree_type operator()( int i ) const { return { i }; }
-	tree_type operator()( x_node_data ) const { return { delta_x_node_data{} }; }
-	tree_type operator()( delta_x_node_data ) const { return { delta_x_node_data{} }; }
+	derivative_type operator()( int i ) const { return { 0, 0 }; }
+	derivative_type operator()( x_node_data ) const { return { delta_x_node_data{}, 0 }; }
+	derivative_type operator()( y_node_data ) const { return { 0, delta_y_node_data{} }; }
+	
+	derivative_type operator()( delta_x_node_data ) const { throw std::runtime_error("foo"); }
+	derivative_type operator()( delta_y_node_data ) const { throw std::runtime_error("bar"); }
 	
 	template<class Summands, class TransformedSummands>
-	tree_type operator()( plus_node_data, Summands &&, TransformedSummands &&ts ) const {
-		if constexpr( std::is_rvalue_reference_v<TransformedSummands &&> )
-			return { plus_node_data{}, std::move( ts.front() ), std::move( ts.back() ) };
-		else
-			return { plus_node_data{}, ts.front(), ts.back() };
+	derivative_type operator()( plus_node_data, Summands &&, TransformedSummands &&ts ) const {
+		if constexpr( std::is_rvalue_reference_v<TransformedSummands &&> ) {
+			return {
+				tree_type( plus_node_data{}, std::move( ts.front().front() ), std::move( ts.back().front() ) ),
+				tree_type( plus_node_data{}, std::move( ts.back().back() ), std::move( ts.front().back() ) )
+			};
+		} else {
+			return {
+				tree_type( plus_node_data{}, ts.front().front(), ts.back().front() ),
+				tree_type( plus_node_data{}, ts.back().back(), ts.front().back() )
+			};
+		}
 	}
 	
 	template<class Factors, class TransformedFactors>
-	tree_type operator()( times_node_data, Factors &&factors, TransformedFactors &&tfactors ) const {
-		tree_type part1 = { times_node_data{}, factors.front(), tfactors.back() };
-		tree_type part2 = { times_node_data{}, tfactors.front(), factors.back() };
+	derivative_type operator()( times_node_data, Factors &&factors, TransformedFactors &&tfactors ) const {
+		tree_type dx_part1 = { times_node_data{}, factors.front(), tfactors.back().front() };
+		tree_type dx_part2 = { times_node_data{}, tfactors.front().front(), factors.back() };
 		
-		return { plus_node_data{}, std::move( part1 ), std::move( part2 ) };
+		tree_type dy_part1 = { times_node_data{}, factors.front(), tfactors.back().back() };
+		tree_type dy_part2 = { times_node_data{}, tfactors.front().back(), factors.back() };
+		
+		return {
+			tree_type{ plus_node_data{}, std::move( dx_part1 ), std::move( dx_part2 ) },
+			tree_type{ plus_node_data{}, std::move( dy_part1 ), std::move( dy_part2 ) }
+		};
 	}
 };
 static constexpr node_derivative_impl node_derivative;
@@ -123,14 +158,73 @@ BOOST_AUTO_TEST_CASE( test_tree_derivative ) {
 	using tree_node = typename default_tree_t<tree_tag>::tree_node;
 	
 	auto tree_x = make<tree_tag>( x_node_data{} );
+	auto tree_y = make<tree_tag>( y_node_data{} );
 	auto tree_dx = make<tree_tag>( delta_x_node_data{} );
 	auto tree_x_2 = make<tree_tag>( times_node_data{}, tree_x, tree_x );
+	auto tree_y_x_2 = make<tree_tag>( times_node_data{}, tree_y, tree_x_2 );
 	
-	auto derivative = recursive_tree_transform( tree_x_2, node_derivative );
+	auto derivative = recursive_tree_transform( tree_y_x_2, node_derivative );
 	
-	auto tree_x_dx = make<tree_tag>( times_node_data{}, tree_x, tree_dx );
-	auto tree_dx_x = make<tree_tag>( times_node_data{}, tree_dx, tree_x );
+	auto compare_dx_derivative = make<tree_tag>(
+		plus_node_data{},
+		make<tree_tag>(
+			times_node_data{},
+			y_node_data{},
+			make<tree_tag>(
+				plus_node_data{},
+				make<tree_tag>(
+					times_node_data{},
+					x_node_data{},
+					delta_x_node_data{}
+				),
+				make<tree_tag>(
+					times_node_data{},
+					delta_x_node_data{},
+					x_node_data{}
+				)
+			)
+		),
+		make<tree_tag>(
+			times_node_data{},
+			0,
+			make<tree_tag>(
+				times_node_data{},
+				x_node_data{},
+				x_node_data{}
+			)
+		)
+	);
 	
-	auto compare_derivative = make<tree_tag>( plus_node_data{}, tree_x_dx, tree_dx_x );
-	BOOST_TEST( compare_derivative == derivative );
+	auto compare_dy_derivative = make<tree_tag>(
+		plus_node_data{},
+		make<tree_tag>(
+			times_node_data{},
+			y_node_data{},
+			make<tree_tag>(
+				plus_node_data{},
+				make<tree_tag>(
+					times_node_data{},
+					x_node_data{},
+					0
+				),
+				make<tree_tag>(
+					times_node_data{},
+					0,
+					x_node_data{}
+				)
+			)
+		),
+		make<tree_tag>(
+			times_node_data{},
+			delta_y_node_data{},
+			make<tree_tag>(
+				times_node_data{},
+				x_node_data{},
+				x_node_data{}
+			)
+		)
+	);
+	derivative_type compare_derivative = {compare_dx_derivative, compare_dy_derivative};
+	
+	BOOST_TEST( derivative == compare_derivative );
 }
