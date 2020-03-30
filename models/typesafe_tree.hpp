@@ -135,11 +135,12 @@ private:
 		node_data_types,
 		wrap_if_nonterminal
 	);
-	
+public:
 	using node_variant = typename decltype(+boost::hana::unpack(
 		wrapped_nodes,
 		boost::hana::template_<boost::variant>
 	))::type;
+private:
 	node_variant node;
 public:
 	using cxxmath_dispatch_tag = typesafe_tree_tag<NodeDataTypes, Arities>;
@@ -149,12 +150,18 @@ public:
 	typesafe_tree( const typesafe_tree &other ) = default;
 	
 	template<
+	    class Arg,
+		class = std::enable_if_t<!std::is_same_v<std::decay_t<Arg>, typesafe_tree>>
+	> typesafe_tree( Arg &&arg ) : node{
+		unique_constructible_alternative_t<node_variant, Arg &&>{ std::forward<Arg>( arg ) }
+	} { static_assert( has_unique_constructible_alternative_v<node_variant, Arg &&> ); }
+	
+	template<
 	    class ...Args,
-		class = std::enable_if_t<has_unique_constructible_alternative_v<node_variant, Args &&...>>
-	>
-	typesafe_tree( Args &&...args ) : node{
+	    class = std::enable_if_t<(sizeof...(Args) >= 2)>
+	> typesafe_tree( Args &&...args ) : node{
 		unique_constructible_alternative_t<node_variant, Args &&...>{ std::forward<Args>( args )... }
-	} {}
+	} { static_assert( has_unique_constructible_alternative_v<node_variant, Args &&...> ); }
 	
 	typesafe_tree &operator=( typesafe_tree &&other ) = default;
 	typesafe_tree &operator=( const typesafe_tree &other ) = default;
@@ -205,9 +212,10 @@ public:
 	template<
 		class Data,
 		class ...Children,
+		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>,
 		class = std::enable_if_t<sizeof...(Children) != 0>
 	> typesafe_tree_node( Data &&d, Children &&...ch )
-	: data{ d }, children{ std::forward<Children>( ch )... } {}
+	: data{ std::forward<Data>( d ) }, children{ std::forward<Children>( ch )... } {}
 	
 	bool operator==( const typesafe_tree_node &other ) const {
 		return data == other.data && children == other.children;

@@ -123,6 +123,7 @@ private:
 					
 					return f(
 						tree_node::data( node ),
+						tree_node::children( node ),
 						boost::adaptors::transform( tree_node::children( node ), recurse )
 					);
 				}

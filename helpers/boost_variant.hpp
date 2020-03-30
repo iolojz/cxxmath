@@ -18,7 +18,6 @@ namespace detail {
 template<class BoostVariant, class ...Args>
 class constructible_types {
 	static_assert( is_boost_variant_v<BoostVariant> );
-	template<class Type> using type_is_constructible = std::is_constructible<Type, Args...>;
 	static constexpr auto unwrapped_typpes = boost::hana::transform(
 		boost::hana::to_tuple( typename BoostVariant::types{} ),
 		boost::hana::metafunction<boost::unwrap_recursive>
