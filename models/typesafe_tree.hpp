@@ -193,12 +193,21 @@ public:
 	typesafe_tree_node &operator=( const typesafe_tree_node & ) = default;
 	typesafe_tree_node &operator=( typesafe_tree_node && ) = default;
 	
+	template<class Data, class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>>
+	typesafe_tree_node( Data &&d, child_container &&ch )
+	: data( std::forward<Data>( d ) ), children( std::move( ch ) ) {}
+	
+	template<class Data, class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>>
+	typesafe_tree_node( Data &&d, const child_container &ch )
+	: data( std::forward<Data>( d ) ), children( ch ) {}
+	
 	template<
 		class Data,
 		class Children,
-		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>
+		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>,
+		class = std::enable_if_t<!std::is_same_v<std::decay_t<Children>, child_container>>
 	> typesafe_tree_node( Data &&d, Children &&ch )
-	: data( std::forward<Data>( d ) ), children( std::forward<Children>( ch ) ) {}
+	: data( std::forward<Data>( d ) ), children{ std::forward<Children>( ch ) } {}
 	
 	template<
 		class Data,
