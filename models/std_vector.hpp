@@ -69,6 +69,9 @@ public:
 };
 }
 
+template<class Symbol, class Allocator>
+using std_vector_monoid = typename model_std_vector::vector_monoid<Symbol, Allocator>::type;
+
 namespace impl {
 template<class Symbol, class Allocator>
 struct default_monoid<std_vector_tag<Symbol, Allocator>> {

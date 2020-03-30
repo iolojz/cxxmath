@@ -12,9 +12,9 @@ add_executable(std_pair std_pair.cpp)
 target_link_libraries(std_pair)
 add_test(std_pair std_pair)
 
-add_executable(product_set product_set.cpp)
-target_link_libraries(product_set)
-add_test(product_set product_set)
+add_executable(product_comparable product_comparable.cpp)
+target_link_libraries(product_comparable)
+add_test(product_comparable product_comparable)
 
 add_executable(product_monoid product_monoid.cpp)
 target_link_libraries(product_monoid)

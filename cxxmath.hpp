@@ -24,6 +24,7 @@
 #include "models/free_r_algebra.hpp"
 #include "models/function_object.hpp"
 #include "models/int.hpp"
+#include "models/product_comparable.hpp"
 #include "models/product_monoid.hpp"
 #include "models/quotient_r_algebra.hpp"
 #include "models/std_get.hpp"

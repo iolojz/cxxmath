@@ -57,6 +57,8 @@ struct second {
 using product = concepts::product<first, second>;
 }
 
+using std_pair_product = model_std_pair::product;
+
 namespace impl {
 template<>
 struct default_product<std_pair_tag> {
@@ -69,7 +71,11 @@ template<> struct make_product<model_std_pair::product> {
 		return std::make_pair( std::forward<Arg1>( arg1 ), std::forward<Arg2>( arg2 ) );
 	}
 };
+
+template<> struct make<std_pair_tag> : make_product<model_std_pair::product> {};
 }
+
+static constexpr auto make_pair = static_function_object<impl::make<std_pair_tag>>;
 }
 
 #endif //CXXMATH_MODELS_STD_PAIR_HPP
