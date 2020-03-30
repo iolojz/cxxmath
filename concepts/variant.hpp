@@ -71,14 +71,15 @@ CXXMATH_DEFINE_CONCEPT( variant )
 
 class dispatch_visit {
 	template<std::size_t N, class F, class VariantOrResolvedArg, class ...NextVariantsAndResolvedArgs>
-	constexpr decltype(auto) apply( F &&f, VariantOrResolvedArg &&varg, NextVariantsAndResolvedArgs &&...nvargs ) const {
+	static constexpr decltype(auto)
+	apply( F &&f, VariantOrResolvedArg &&varg, NextVariantsAndResolvedArgs &&...nvargs ) {
 		if constexpr( N == sizeof...(NextVariantsAndResolvedArgs) + 1 )
 			return std::forward<F>( f )(
 				std::forward<VariantOrResolvedArg>( varg ),
 				std::forward<NextVariantsAndResolvedArgs>( nvargs )...
 			);
 		else {
-			constexpr auto iterate = [this, &f, &nvargs...] ( auto &&x ) {
+			constexpr auto iterate = [&f, &nvargs...] ( auto &&x ) {
 				return apply<N + 1>(
 					std::forward<F>( f ),
 					std::forward<NextVariantsAndResolvedArgs>( nvargs )...,
@@ -92,12 +93,11 @@ class dispatch_visit {
 				std::forward<VariantOrResolvedArg>( varg )
 			);
 		}
-		
 	}
 public:
 	template<class F, class Variant, class ...OtherVariants>
 	constexpr decltype( auto ) operator()( F &&f, Variant &&variant, OtherVariants &&...other_variants ) const {
-		constexpr auto iterate = [this, &f, &other_variants...] ( auto &&x ) {
+		constexpr auto iterate = [&f, &other_variants...] ( auto &&x ) {
 			return apply<0>(
 				std::forward<F>( f ),
 				std::forward<OtherVariants>( other_variants )...,
