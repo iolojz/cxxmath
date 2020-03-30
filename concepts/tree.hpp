@@ -25,17 +25,16 @@ template<class F>
 static constexpr invoke_result_impl<F> invoke_result;
 }
 
-template<class Data, class IsTerminal, class Arity, class Children>
+template<class Data, class IsTerminal, class Children>
 struct tree_node {
 	static constexpr auto data = static_function_object<Data>;
 	static constexpr auto is_terminal = static_function_object<IsTerminal>;
-	static constexpr auto arity = static_function_object<Arity>;
 	static constexpr auto children = static_function_object<Children>;
 };
 
 template<class> struct is_tree_node: std::false_type {};
-template<class Data, class IsTerminal, class Arity, class Children>
-struct is_tree_node<tree_node<Data, IsTerminal, Arity, Children>>: std::true_type {};
+template<class Data, class IsTerminal, class Children>
+struct is_tree_node<tree_node<Data, IsTerminal, Children>>: std::true_type {};
 
 CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_tree_node)
 
@@ -153,9 +152,6 @@ struct type_models_concept<Type, TreeNode, std::enable_if_t<concepts::is_tree_no
 	static constexpr bool value = (
 		std::is_invocable_v<decltype(TreeNode::data), Type> &&
 		std::is_invocable_v<decltype(TreeNode::is_terminal), Type>
-		// FIXME: How do we conditionally enable these for constexpr non-terminals?
-		/*CXXMATH_IS_VALID( TreeNode::arity, std::declval<Type>() ),
-		CXXMATH_IS_VALID( TreeNode::children, std::declval<Type>() )*/
 	);
 };
 

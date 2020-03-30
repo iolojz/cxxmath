@@ -17,15 +17,15 @@ namespace cxxmath {
 struct runtime_arity_t {};
 static constexpr auto runtime_arity = runtime_arity_t{};
 
-template<class NodeDataTypes, class Arities> class typesafe_tree;
+template<class NodeDataArityMap> class typesafe_tree;
 
 template<class T> struct is_typesafe_tree: std::false_type {};
-template<class NodeDataTypes, class Arities>
-struct is_typesafe_tree<typesafe_tree<NodeDataTypes, Arities>>: std::true_type {};
+template<class NodeDataArityMap>
+struct is_typesafe_tree<typesafe_tree<NodeDataArityMap>>: std::true_type {};
 CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_typesafe_tree)
 
-template<class NodeDataTypes, class Arities> struct typesafe_tree_tag {
-	using tree_type = typesafe_tree<NodeDataTypes, Arities>;
+template<class NodeDataArityMap> struct typesafe_tree_tag {
+	using tree_type = typesafe_tree<NodeDataArityMap>;
 };
 template<class TypesafeTree> struct typesafe_tree_node_tag {
 	static_assert( is_typesafe_tree_v<TypesafeTree> );
@@ -33,15 +33,15 @@ template<class TypesafeTree> struct typesafe_tree_node_tag {
 };
 
 template<class T> struct is_typesafe_tree_tag: std::false_type {};
-template<class NodeDataTypes, class Arities>
-struct is_typesafe_tree_tag<typesafe_tree_tag<NodeDataTypes, Arities>>: std::true_type {};
+template<class NodeDataArityMap>
+struct is_typesafe_tree_tag<typesafe_tree_tag<NodeDataArityMap>>: std::true_type {};
 CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_typesafe_tree_tag)
 
 template<class NodeData, class TypesafeTree, class = void> class typesafe_tree_node;
 
 template<class T> struct is_typesafe_tree_node : std::false_type {};
-template<class NodeDataTypes, class Arities>
-struct is_typesafe_tree_node<typesafe_tree_node<NodeDataTypes, Arities>> : std::true_type {};
+template<class NodeData, class TypesafeTree>
+struct is_typesafe_tree_node<typesafe_tree_node<NodeData, TypesafeTree>> : std::true_type {};
 CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_typesafe_tree_node)
 
 template<class NodeData, class TypesafeTree>
@@ -77,29 +77,13 @@ public:
 	}
 	
 	constexpr auto is_terminal( void ) const { return boost::hana::true_c; }
-	constexpr std::size_t arity( void ) const { return 0; }
 	
 	node_data data;
 };
 
-template<class NodeDataTypes, class Arities> class typesafe_tree {
-	static constexpr auto node_data_types = boost::hana::transform(
-		NodeDataTypes{},
-		boost::hana::typeid_
-	);
-	static constexpr auto arities = Arities{};
-	
-	static_assert( boost::hana::length( node_data_types ) != boost::hana::size_c<0>, "No node types were provided." );
-	static_assert( boost::hana::length( node_data_types ) == boost::hana::length( arities ) );
-	
-	static constexpr auto arity_map = boost::hana::unpack(
-		boost::hana::zip_with(
-			boost::hana::make_pair,
-			node_data_types,
-			arities
-		),
-		boost::hana::make_map
-	);
+template<class NodeDataArityMap> class typesafe_tree {
+	static constexpr auto arity_map = NodeDataArityMap{};
+	static constexpr auto node_data_types = boost::hana::keys( arity_map );
 public:
 	template<class NodeData>
 	static constexpr auto arity_of_node_type( boost::hana::basic_type<NodeData> ) {
@@ -143,7 +127,7 @@ public:
 private:
 	node_variant node;
 public:
-	using cxxmath_dispatch_tag = typesafe_tree_tag<NodeDataTypes, Arities>;
+	using cxxmath_dispatch_tag = typesafe_tree_tag<NodeDataArityMap>;
 	
 	typesafe_tree( void ) = default;
 	typesafe_tree( typesafe_tree &&other ) = default;
@@ -225,9 +209,6 @@ public:
 	}
 	
 	constexpr auto is_terminal( void ) const { return boost::hana::false_c; }
-	constexpr decltype(auto) arity( void ) const {
-		return TypesafeTree::arity_for_node_data( boost::hana::type_c<NodeData> );
-	}
 	
 	node_data data;
 	child_container children;
@@ -252,13 +233,6 @@ struct is_terminal {
 	template<class TypesafeTreeNode>
 	static constexpr decltype(auto) apply( const TypesafeTreeNode &node ) {
 		return node.is_terminal();
-	}
-};
-
-struct arity {
-	template<class TypesafeTreeNode>
-	static constexpr decltype(auto) apply( const TypesafeTreeNode &node ) {
-		return node.arity();
 	}
 };
 
@@ -290,12 +264,12 @@ struct equal {
 }
 
 namespace concepts {
-template<class NodeDataTypes, class Arities>
+template<class NodeDataArityMap>
 using typesafe_tree_comparable = concepts::comparable<
 	model_typesafe_tree::equal
 >;
 
-template<class NodeDataTypes, class Arities>
+template<class NodeDataArityMap>
 using typesafe_tree_variant = concepts::variant<
 	model_typesafe_tree::types,
     model_typesafe_tree::visit
@@ -308,14 +282,14 @@ using typesafe_tree_node_comparable = concepts::comparable<
 }
 
 namespace impl {
-template<class NodeDataTypes, class Arities>
-struct default_comparable<typesafe_tree_tag<NodeDataTypes, Arities>> {
-	using type = concepts::typesafe_tree_comparable<NodeDataTypes, Arities>;
+template<class NodeDataArityMap>
+struct default_comparable<typesafe_tree_tag<NodeDataArityMap>> {
+	using type = concepts::typesafe_tree_comparable<NodeDataArityMap>;
 };
 
-template<class NodeDataTypes, class Arities>
-struct default_variant<typesafe_tree_tag<NodeDataTypes, Arities>> {
-	using type = concepts::typesafe_tree_variant<NodeDataTypes, Arities>;
+template<class NodeDataArityMap>
+struct default_variant<typesafe_tree_tag<NodeDataArityMap>> {
+	using type = concepts::typesafe_tree_variant<NodeDataArityMap>;
 };
 
 template<class TypesafeTree>
@@ -328,19 +302,17 @@ struct default_tree_node<typesafe_tree_node_tag<TypesafeTree>> {
 	using type = concepts::tree_node<
 		model_typesafe_tree::data,
 		model_typesafe_tree::is_terminal,
-		model_typesafe_tree::arity,
 		model_typesafe_tree::children
 	>;
 };
 
-template<class NodeDataTypes, class Arities>
-struct default_tree<typesafe_tree_tag<NodeDataTypes, Arities>> {
+template<class NodeDataArityMap>
+struct default_tree<typesafe_tree_tag<NodeDataArityMap>> {
 	using type = concepts::tree<
-	    concepts::typesafe_tree_variant<NodeDataTypes, Arities>,
+	    concepts::typesafe_tree_variant<NodeDataArityMap>,
 	    concepts::tree_node<
 			model_typesafe_tree::data,
 			model_typesafe_tree::is_terminal,
-			model_typesafe_tree::arity,
 			model_typesafe_tree::children
 		>
 	>;

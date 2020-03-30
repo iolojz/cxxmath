@@ -46,21 +46,17 @@ std::ostream &operator<<( std::ostream &os, const delta_y_node_data & ) {
 	return os << "\\Delta y";
 }
 
-using node_data_types = std::tuple<
-	int,
-	plus_node_data, times_node_data,
-	x_node_data, delta_x_node_data,
-	y_node_data, delta_y_node_data
->;
-using node_arities = std::tuple<
-	std::integral_constant<int, 0>,
-	std::integral_constant<int, 2>, std::integral_constant<int, 2>,
-	std::integral_constant<int, 0>, std::integral_constant<int, 0>,
-	std::integral_constant<int, 0>, std::integral_constant<int, 0>
->;
-using tree_type = cxxmath::typesafe_tree<node_data_types, node_arities>;
+static constexpr auto node_data_arity_map = boost::hana::make_map(
+	boost::hana::make_pair( boost::hana::type_c<int>, boost::hana::int_c<0> ),
+	boost::hana::make_pair( boost::hana::type_c<plus_node_data>, boost::hana::int_c<2> ),
+	boost::hana::make_pair( boost::hana::type_c<times_node_data>, boost::hana::int_c<2> ),
+	boost::hana::make_pair( boost::hana::type_c<x_node_data>, boost::hana::int_c<0> ),
+	boost::hana::make_pair( boost::hana::type_c<delta_x_node_data>, boost::hana::int_c<0> ),
+	boost::hana::make_pair( boost::hana::type_c<y_node_data>, boost::hana::int_c<0> ),
+	boost::hana::make_pair( boost::hana::type_c<delta_y_node_data>, boost::hana::int_c<0> )
+);
 
-using derivative_tree_type = cxxmath::typesafe_tree<node_data_types, node_arities>;
+using tree_type = cxxmath::typesafe_tree<decltype(node_data_arity_map)>;
 using derivative_type = std::array<tree_type, 2>;
 
 struct node_derivative_impl {
