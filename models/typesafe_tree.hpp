@@ -67,7 +67,7 @@ public:
 		class Data,
 		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>
 	>
-	typesafe_tree_node( Data &&d ) : data{ std::forward<Data>( d ) } {}
+	typesafe_tree_node( Data &&d ) : data( std::forward<Data>( d ) ) {}
 	
 	bool operator==( const typesafe_tree_node &other ) const {
 		return data == other.data;
@@ -136,9 +136,9 @@ public:
 	template<
 	    class Arg,
 		class = std::enable_if_t<!std::is_same_v<std::decay_t<Arg>, typesafe_tree>>
-	> typesafe_tree( Arg &&arg ) : node{
-		unique_constructible_alternative_t<node_variant, Arg &&>{ std::forward<Arg>( arg ) }
-	} { static_assert( has_unique_constructible_alternative_v<node_variant, Arg &&> ); }
+	> typesafe_tree( Arg &&arg ) : node(
+		unique_constructible_alternative_t<node_variant, Arg &&>( std::forward<Arg>( arg ) )
+	) { static_assert( has_unique_constructible_alternative_v<node_variant, Arg &&> ); }
 	
 	template<
 	    class ...Args,
@@ -195,11 +195,18 @@ public:
 	
 	template<
 		class Data,
+		class Children,
+		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>
+	> typesafe_tree_node( Data &&d, Children &&ch )
+	: data( std::forward<Data>( d ) ), children( std::forward<Children>( ch ) ) {}
+	
+	template<
+		class Data,
 		class ...Children,
 		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>,
-		class = std::enable_if_t<sizeof...(Children) != 0>
+		class = std::enable_if_t<sizeof...(Children) >= 2>
 	> typesafe_tree_node( Data &&d, Children &&...ch )
-	: data{ std::forward<Data>( d ) }, children{ std::forward<Children>( ch )... } {}
+	: data( std::forward<Data>( d ) ), children{ std::forward<Children>( ch )... } {}
 	
 	bool operator==( const typesafe_tree_node &other ) const {
 		return data == other.data && children == other.children;

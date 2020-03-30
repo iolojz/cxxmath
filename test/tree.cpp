@@ -107,7 +107,9 @@ BOOST_AUTO_TEST_CASE( test_tree_basic ) {
 	auto tree_2 = make<tree_tag>( 2 );
 	auto tree_x = make<tree_tag>( x_node_data{} );
 	auto tree_1_plus_2 = make<tree_tag>( plus_node_data{}, tree_1, tree_2 );
-	auto tree_1_plus_2_plus_x = make<tree_tag>( plus_node_data{}, tree_1_plus_2, tree_x );
+	
+	std::array<tree_type, 2> summands = { tree_1_plus_2, tree_x };
+	auto tree_1_plus_2_plus_x = make<tree_tag>( plus_node_data{}, summands );
 	
 	BOOST_TEST_REQUIRE( holds_node<plus_node_data>( tree_1_plus_2_plus_x ) );
 	auto node_1_plus_2_plus_x = get_node<plus_node_data>( tree_1_plus_2_plus_x );
