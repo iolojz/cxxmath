@@ -31,3 +31,7 @@ add_test(clifford clifford)
 add_executable(tree tree.cpp)
 target_link_libraries(tree)
 add_test(tree tree)
+
+add_executable(variant variant.cpp)
+target_link_libraries(variant)
+add_test(variant variant)

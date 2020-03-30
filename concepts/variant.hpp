@@ -79,7 +79,7 @@ class dispatch_visit {
 				std::forward<NextVariantsAndResolvedArgs>( nvargs )...
 			);
 		else {
-			constexpr auto iterate = [&f, &nvargs...] ( auto &&x ) {
+			auto iterate = [&f, &nvargs...] ( auto &&x ) {
 				return apply<N + 1>(
 					std::forward<F>( f ),
 					std::forward<NextVariantsAndResolvedArgs>( nvargs )...,
@@ -96,15 +96,12 @@ class dispatch_visit {
 	}
 public:
 	template<class F, class Variant, class ...OtherVariants>
-	constexpr decltype( auto ) operator()( F &&f, Variant &&variant, OtherVariants &&...other_variants ) const {
-		constexpr auto iterate = [&f, &other_variants...] ( auto &&x ) {
-			return apply<0>(
-				std::forward<F>( f ),
-				std::forward<OtherVariants>( other_variants )...,
-				std::forward<decltype(x)>( x )
-			);
-		};
-		return default_variant_t<tag_of_t<Variant>>::visit( iterate, std::forward<Variant>( variant ) );
+	constexpr decltype(auto) operator()( F &&f, Variant &&variant, OtherVariants &&...other_variants ) const {
+		return apply<0>(
+			std::forward<F>( f ),
+			std::forward<Variant>( variant ),
+			std::forward<OtherVariants>( other_variants )...
+		);
 	}
 };
 static constexpr dispatch_visit visit;
