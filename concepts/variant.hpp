@@ -38,11 +38,12 @@ public:
 	static constexpr auto types = static_function_object<Types>;
 	static constexpr auto visit = static_function_object<Visit>;
 	
-	// FIXME: clang complains about 'auto' type in templated dispatch functions for some reasons...
+	// FIXME: clang++ complains about 'auto' type in templated dispatch functions for some reasons...
+	// FIXME: g++ complains about missing initializers
 	template<class T>
-	static constexpr static_function_object_t<get_alternative_impl<T>> get_alternative;
+	static constexpr static_function_object_t<get_alternative_impl<T>> get_alternative{};
 	template<class T>
-	static constexpr static_function_object_t<holds_alternative_impl<T>> holds_alternative;
+	static constexpr static_function_object_t<holds_alternative_impl<T>> holds_alternative{};
 };
 
 template<class> struct is_variant: std::false_type {};

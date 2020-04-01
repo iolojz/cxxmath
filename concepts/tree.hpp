@@ -134,11 +134,12 @@ public:
 	static constexpr auto visit = Variant::visit;
 	
 	// FIXME: clang complains about 'auto' type in templated dispatch functions for some reasons...
+	// FIXME: g++ complains about missing initializers
 	
 	template<class NodeData>
-	static constexpr static_function_object_t<get_node_impl<NodeData>> get_node;
+	static constexpr static_function_object_t<get_node_impl<NodeData>> get_node{};
 	template<class NodeData>
-	static constexpr static_function_object_t<holds_node_impl<NodeData>> holds_node;
+	static constexpr static_function_object_t<holds_node_impl<NodeData>> holds_node{};
 	static constexpr auto recursive_tree_transform = static_function_object<recursive_tree_transform_impl>;
 };
 
