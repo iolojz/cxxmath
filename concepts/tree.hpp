@@ -63,7 +63,7 @@ private:
 		template<class Var>
 		static constexpr decltype(auto) apply( Var &&v ) {
 			constexpr auto nodes_for_node_data = boost::hana::filter(
-				variant::types( v ),
+				decltype(variant::types( v )){},
 				[] ( auto &&node_type ) {
 					using data_type = std::decay_t<decltype(TreeNode::data(
 						std::declval<typename decltype(+node_type)::type>() )
@@ -113,7 +113,7 @@ private:
 			)
 		)::type {
 			auto visitor = [f] ( auto &&node ) {
-				if constexpr( tree_node::is_terminal( node ) )
+				if constexpr( boost::hana::value<decltype(tree_node::is_terminal( node ))>() )
 					return f( tree_node::data( node ) );
 				else {
 					auto recurse = [f] ( auto &&child_tree ) {
@@ -133,10 +133,12 @@ private:
 public:
 	static constexpr auto visit = Variant::visit;
 	
+	// FIXME: clang complains about 'auto' type in templated dispatch functions for some reasons...
+	
 	template<class NodeData>
-	static constexpr auto get_node = static_function_object<get_node_impl<NodeData>>;
+	static constexpr static_function_object_t<get_node_impl<NodeData>> get_node;
 	template<class NodeData>
-	static constexpr auto holds_node = static_function_object<holds_node_impl<NodeData>>;
+	static constexpr static_function_object_t<holds_node_impl<NodeData>> holds_node;
 	static constexpr auto recursive_tree_transform = static_function_object<recursive_tree_transform_impl>;
 };
 
@@ -190,7 +192,9 @@ template<class NodeData> struct dispatch_holds_node {
 	template<class Variant>
 	constexpr decltype(auto) operator()( Variant &&v ) const {
 		using dispatch_tag = tag_of_t<Variant>;
-		return default_tree_t<dispatch_tag>::template holds_node<NodeData>( std::forward<Variant>( v ) );
+		constexpr decltype(default_tree_t<dispatch_tag>::template holds_node<NodeData>) holds_node =
+			default_tree_t<dispatch_tag>::template holds_node<NodeData>;
+		return holds_node( std::forward<Variant>( v ) );
 	}
 };
 template<class NodeData>

@@ -345,7 +345,7 @@ struct make<TypesafeTreeTag, std::enable_if_t<is_typesafe_tree_tag_v<TypesafeTre
 template<class TypesafeTreeNode>
 std::enable_if_t<is_typesafe_tree_node_v<TypesafeTreeNode>, std::ostream> &
 operator<<( std::ostream &os, const TypesafeTreeNode &node ) {
-	if constexpr( node.is_terminal() ) {
+	if constexpr( boost::hana::value<decltype(node.is_terminal())>() ) {
 		return os << node.data;
 	} else {
 		os << node.data << " [ ";

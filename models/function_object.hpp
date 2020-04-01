@@ -51,6 +51,7 @@ public:
 };
 }
 
+template<class Implementation> using static_function_object_t = detail::static_function_object<Implementation>;
 template<class Implementation> static constexpr auto static_function_object = detail::static_function_object<Implementation>{};
 
 template<class Function>
