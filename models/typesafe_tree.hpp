@@ -135,10 +135,16 @@ public:
 	
 	template<
 	    class Arg,
-		class = std::enable_if_t<!std::is_same_v<std::decay_t<Arg>, typesafe_tree>>
+		class = std::enable_if_t<!std::is_same_v<std::decay_t<Arg>, typesafe_tree>>,
+		class = std::enable_if_t<!is_boost_variant_v<std::decay_t<Arg>>>
 	> typesafe_tree( Arg &&arg ) : node(
 		unique_constructible_alternative_t<node_variant, Arg &&>( std::forward<Arg>( arg ) )
 	) { static_assert( has_unique_constructible_alternative_v<node_variant, Arg &&> ); }
+	
+	template<
+		class BoostVariant,
+		class = std::enable_if_t<is_boost_variant_v<std::decay_t<BoostVariant>>>
+	> typesafe_tree( BoostVariant &&v ) : node( std::forward<BoostVariant>( v ) ) {}
 	
 	template<
 	    class ...Args,
@@ -204,11 +210,21 @@ public:
 	template<
 		class Data,
 		class Children,
+		std::enable_if_t<boost::has_range_const_iterator<Children>::type::value, int> = 0,
 		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>,
 		class = std::enable_if_t<!std::is_same_v<std::decay_t<Children>, child_container>>
 	> typesafe_tree_node( Data &&d, Children &&ch )
-	: data( std::forward<Data>( d ) ), children{ std::forward<Children>( ch ) } {}
+	: data( std::forward<Data>( d ) ), children{ boost::begin( ch ), boost::end( ch ) } {}
 	
+	template<
+		class Data,
+		class Child,
+		std::enable_if_t<!boost::has_range_const_iterator<Child>::type::value, int> = 0,
+		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>,
+		class = std::enable_if_t<!std::is_same_v<std::decay_t<Child>, child_container>>
+	> typesafe_tree_node( Data &&d, Child &&ch )
+	: data( std::forward<Data>( d ) ), children{ std::forward<Child>( ch ) } {}
+		
 	template<
 		class Data,
 		class ...Children,
