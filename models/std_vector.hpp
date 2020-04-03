@@ -10,6 +10,10 @@
 #include <vector>
 
 namespace cxxmath {
+template<class> struct is_std_vector : std::false_type {};
+template<class T, class Allocator> struct is_std_vector<std::vector<T, Allocator>> : std::true_type {};
+CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(is_std_vector)
+
 template<class Symbol, class Allocator = std::allocator<Symbol>>
 struct std_vector_tag;
 

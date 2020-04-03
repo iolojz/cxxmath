@@ -11,7 +11,10 @@
 #include "../concepts/tree.hpp"
 
 #include "boost_variant.hpp"
+#include "std_vector.hpp"
+
 #include "../helpers/boost_variant.hpp"
+#include "../helpers/std_array.hpp"
 
 namespace cxxmath {
 struct runtime_arity_t {};
@@ -135,20 +138,14 @@ public:
 	
 	template<
 	    class Arg,
-		class = std::enable_if_t<!std::is_same_v<std::decay_t<Arg>, typesafe_tree>>,
-		class = std::enable_if_t<!is_boost_variant_v<std::decay_t<Arg>>>
+		std::enable_if_t<!std::is_same_v<std::decay_t<Arg>, typesafe_tree>, int> = 0
 	> typesafe_tree( Arg &&arg ) : node(
 		unique_constructible_alternative_t<node_variant, Arg &&>( std::forward<Arg>( arg ) )
 	) { static_assert( has_unique_constructible_alternative_v<node_variant, Arg &&> ); }
 	
 	template<
-		class BoostVariant,
-		class = std::enable_if_t<is_boost_variant_v<std::decay_t<BoostVariant>>>
-	> typesafe_tree( BoostVariant &&v ) : node( std::forward<BoostVariant>( v ) ) {}
-	
-	template<
 	    class ...Args,
-	    class = std::enable_if_t<(sizeof...(Args) >= 2)>
+	    std::enable_if_t<(sizeof...(Args) >= 2), int> = 0
 	> typesafe_tree( Args &&...args ) : node{
 		unique_constructible_alternative_t<node_variant, Args &&...>{ std::forward<Args>( args )... }
 	} { static_assert( has_unique_constructible_alternative_v<node_variant, Args &&...> ); }
@@ -186,11 +183,20 @@ class typesafe_tree_node<
 		}
 	}
 public:
+	using child_container = typename decltype(+child_container_())::type;
+private:
+	template<class Range>
+	static child_container to_child_container( Range &&range ) {
+		if constexpr( is_std_vector_v<child_container> )
+			return child_container( boost::begin( range ), boost::end( range ) );
+		else
+			return to_array<child_container>( std::forward<Range>( range ) );
+	}
+public:
 	using cxxmath_dispatch_tag = typesafe_tree_node_tag<TypesafeTree>;
 	
 	using tree = TypesafeTree;
 	using node_data = NodeData;
-	using child_container = typename decltype(+child_container_())::type;
 	
 	typesafe_tree_node( void ) = default;
 	typesafe_tree_node( const typesafe_tree_node & ) = default;
@@ -211,10 +217,10 @@ public:
 		class Data,
 		class Children,
 		std::enable_if_t<boost::has_range_const_iterator<Children>::type::value, int> = 0,
-		class = std::enable_if_t<std::is_constructible_v<node_data, Data &&>>,
-		class = std::enable_if_t<!std::is_same_v<std::decay_t<Children>, child_container>>
+		std::enable_if_t<std::is_constructible_v<node_data, Data &&>, int> = 0,
+		std::enable_if_t<!std::is_same_v<std::decay_t<Children>, child_container>, int> = 0
 	> typesafe_tree_node( Data &&d, Children &&ch )
-	: data( std::forward<Data>( d ) ), children{ boost::begin( ch ), boost::end( ch ) } {}
+	: data( std::forward<Data>( d ) ), children( to_child_container( std::forward<Children>( ch ) ) ) {}
 	
 	template<
 		class Data,

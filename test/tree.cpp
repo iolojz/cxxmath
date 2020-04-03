@@ -8,6 +8,9 @@
 
 #include "../cxxmath.hpp"
 
+struct parentheses_node_data {
+	bool operator==( const parentheses_node_data & ) const { return true; }
+};
 struct plus_node_data {
 	bool operator==( const plus_node_data & ) const { return true; }
 };
@@ -27,6 +30,9 @@ struct delta_y_node_data {
 	bool operator==( const delta_y_node_data & ) const { return true; }
 };
 
+std::ostream &operator<<( std::ostream &os, const parentheses_node_data & ) {
+	return os << "()";
+}
 std::ostream &operator<<( std::ostream &os, const plus_node_data & ) {
 	return os << "plus";
 }
@@ -46,14 +52,28 @@ std::ostream &operator<<( std::ostream &os, const delta_y_node_data & ) {
 	return os << "\\Delta y";
 }
 
-static constexpr auto node_data_arity_map = boost::hana::make_map(
+static constexpr auto terminal_node_data_arity_map = boost::hana::make_map(
 	boost::hana::make_pair( boost::hana::type_c<int>, boost::hana::int_c<0> ),
-	boost::hana::make_pair( boost::hana::type_c<plus_node_data>, boost::hana::int_c<2> ),
-	boost::hana::make_pair( boost::hana::type_c<times_node_data>, boost::hana::int_c<2> ),
 	boost::hana::make_pair( boost::hana::type_c<x_node_data>, boost::hana::int_c<0> ),
 	boost::hana::make_pair( boost::hana::type_c<delta_x_node_data>, boost::hana::int_c<0> ),
 	boost::hana::make_pair( boost::hana::type_c<y_node_data>, boost::hana::int_c<0> ),
 	boost::hana::make_pair( boost::hana::type_c<delta_y_node_data>, boost::hana::int_c<0> )
+);
+
+static constexpr auto nonterminal_node_data_arity_map = boost::hana::make_map(
+	boost::hana::make_pair( boost::hana::type_c<plus_node_data>, boost::hana::int_c<2> ),
+	boost::hana::make_pair( boost::hana::type_c<times_node_data>, boost::hana::int_c<2> ),
+	boost::hana::make_pair( boost::hana::type_c<parentheses_node_data>, boost::hana::int_c<1> )
+);
+
+static constexpr auto int_addition_arity_map = boost::hana::make_map(
+	boost::hana::make_pair( boost::hana::type_c<plus_node_data>, boost::hana::int_c<2> ),
+	boost::hana::make_pair( boost::hana::type_c<int>, boost::hana::int_c<0> )
+);
+
+static constexpr auto node_data_arity_map = boost::hana::union_(
+	terminal_node_data_arity_map,
+	nonterminal_node_data_arity_map
 );
 
 using tree_type = cxxmath::typesafe_tree<decltype(node_data_arity_map)>;
@@ -66,6 +86,20 @@ struct node_derivative_impl {
 	
 	derivative_type operator()( delta_x_node_data ) const { throw std::runtime_error("foo"); }
 	derivative_type operator()( delta_y_node_data ) const { throw std::runtime_error("bar"); }
+	
+	template<class Arg, class TransformedArg>
+	derivative_type operator()( parentheses_node_data, Arg &&, TransformedArg &&ta ) const {
+		return {
+			tree_type{
+				parentheses_node_data{},
+				ta.front()
+			},
+			tree_type{
+				parentheses_node_data{},
+				ta.back()
+			}
+		};
+	}
 	
 	template<class Summands, class TransformedSummands>
 	derivative_type operator()( plus_node_data, Summands &&, TransformedSummands &&ts ) const {
@@ -225,4 +259,65 @@ BOOST_AUTO_TEST_CASE( test_tree_derivative ) {
 	derivative_type compare_derivative = {compare_dx_derivative, compare_dy_derivative};
 	
 	BOOST_TEST( derivative == compare_derivative );
+}
+
+BOOST_AUTO_TEST_CASE( test_tree_constructors ) {
+	using namespace cxxmath;
+	using tree_tag = tag_of_t<tree_type>;
+	using int_add_tree_type = cxxmath::typesafe_tree<decltype(int_addition_arity_map)>;
+	
+	// Test terminal node construction through data
+	decltype(get_node<int>( std::declval<int_add_tree_type>() )) one = { 1 };
+	
+	// Test terminal node copy/move
+	{
+		decltype( one ) one_copy = one;
+		decltype( one ) one_moved = std::move( one_copy );
+		
+		BOOST_TEST( one_copy == one );
+		BOOST_TEST( one_moved == one );
+	}
+	
+	// Test non-terminal node construction through data/children (multiple)
+	decltype(get_node<plus_node_data>( std::declval<int_add_tree_type>() )) one_plus_one = {
+		plus_node_data{},
+		std::array<int_add_tree_type, 2>{one, one}
+	};
+	
+	{
+		decltype(one_plus_one) compare_one_plus_one = {
+			plus_node_data{},
+			std::vector<int_add_tree_type>{one, one}
+		};
+		BOOST_TEST( one_plus_one == compare_one_plus_one );
+	}
+	{
+		decltype(one_plus_one) compare_one_plus_one = {
+			plus_node_data{},
+			one,
+			one
+		};
+		BOOST_TEST( one_plus_one == compare_one_plus_one );
+	}
+	
+	// Test non-terminal node construction through data/children (single)
+	tree_type parentheses_one = {
+		parentheses_node_data{},
+		std::array<tree_type, 1>{ 1 }
+	};
+	
+	{
+		decltype(parentheses_one) compare_parentheses_one = {
+			parentheses_node_data{},
+			std::vector<tree_type>{ 1 }
+		};
+		BOOST_TEST( parentheses_one == compare_parentheses_one );
+	}
+	{
+		decltype(parentheses_one) compare_parentheses_one = {
+			parentheses_node_data{},
+			1
+		};
+		BOOST_TEST( parentheses_one == compare_parentheses_one );
+	}
 }
