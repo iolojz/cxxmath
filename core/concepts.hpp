@@ -7,6 +7,8 @@
 
 #include "../helpers/wrap_template_members.hpp"
 
+#include <type_traits>
+
 namespace cxxmath {
 template<class Type, class Concept, class = void> struct type_models_concept : std::false_type {};
 CXXMATH_DEFINE_STATIC_CONSTEXPR_VALUE_TEMPLATE(type_models_concept)
